@@ -90,46 +90,46 @@ static TMR_OBJ tmr5_obj;
 
 void TMR5_Initialize (void)
 {
-//    //TMR5 0; 
-//    TMR5 = 0x00;
-//    //Period = 0.001000434 s; Frequency = 7372800 Hz; PR5 921; 
-//    PR5 = 0x399;
-//    //TCKPS 1:8; TON enabled; TSIDL disabled; TCS FOSC/2; TGATE disabled; 
-//    T5CON = 0x8010;
-//
-//    if(TMR5_InterruptHandler == NULL)
-//    {
-//        TMR5_SetInterruptHandler(&TMR5_CallBack);
-//    }
-//
-//    IFS1bits.T5IF = false;
-//    IEC1bits.T5IE = true;
-//	
-//    tmr5_obj.timerElapsed = false;
+    //TMR5 0; 
+    TMR5 = 0x00;
+    //Period = 0.0009998915 s; Frequency = 14745600 Hz; PR5 1842; 
+    PR5 = 0x732;
+    //TCKPS 1:8; TON enabled; TSIDL disabled; TCS FOSC/2; TGATE disabled; 
+    T5CON = 0x8010;
+
+    if(TMR5_InterruptHandler == NULL)
+    {
+        TMR5_SetInterruptHandler(&TMR5_CallBack);
+    }
+
+    IFS1bits.T5IF = false;
+    IEC1bits.T5IE = true;
+	
+    tmr5_obj.timerElapsed = false;
 
 }
 
 
-//void __attribute__ ( ( interrupt, no_auto_psv ) ) _T5Interrupt (  )
-//{
-//    /* Check if the Timer Interrupt/Status is set */
-//
-//    //***User Area Begin
-//
-//    // ticker function call;
-//    // ticker is 1 -> Callback function gets called everytime this ISR executes
-//    if(TMR5_InterruptHandler) 
-//    { 
-//           TMR5_InterruptHandler(); 
-//    }
-//
-//    //***User Area End
-//
-//    tmr5_obj.count++;
-//    tmr5_obj.timerElapsed = true;
-//    IFS1bits.T5IF = false;
-//}
-//
+void __attribute__ ( ( interrupt, no_auto_psv ) ) _T5Interrupt (  )
+{
+    /* Check if the Timer Interrupt/Status is set */
+
+    //***User Area Begin
+
+    // ticker function call;
+    // ticker is 1 -> Callback function gets called everytime this ISR executes
+    if(TMR5_InterruptHandler) 
+    { 
+           TMR5_InterruptHandler(); 
+    }
+
+    //***User Area End
+
+    tmr5_obj.count++;
+    tmr5_obj.timerElapsed = true;
+    IFS1bits.T5IF = false;
+}
+
 void TMR5_Period16BitSet( uint16_t value )
 {
     /* Update the counter values */

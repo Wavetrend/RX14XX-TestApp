@@ -50,13 +50,14 @@
 #include "pin_manager.h"
 #include <stdint.h>
 #include <stdbool.h>
-#include "tmr5.h"
 #include "interrupt_manager.h"
 #include "traps.h"
+#include "tmr5.h"
+#include "uart3.h"
 #include "uart2.h"
 
 #ifndef _XTAL_FREQ
-#define _XTAL_FREQ  14745600UL
+#define _XTAL_FREQ  29491200UL
 #endif
 
 /**

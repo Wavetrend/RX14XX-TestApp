@@ -59,7 +59,7 @@
 #pragma config IOL1WAY = OFF    //IOLOCK One-Way Set Enable->The IOLOCK bit can be set and cleared as needed, provided the unlock sequence has been completed
 #pragma config OSCIOFNC = ON    //OSCO Pin Configuration->OSCO/CLKO/RC15 functions as port I/O (RC15)
 #pragma config FCKSM = CSECMD    //Clock Switching and Fail-Safe Clock Monitor->Clock switching is enabled, Fail-Safe Clock Monitor is disabled
-#pragma config FNOSC = FRC    //Initial Oscillator Select->FRC
+#pragma config FNOSC = PRIPLL    //Initial Oscillator Select->Primary Oscillator with PLL module (XTPLL, HSPLL, ECPLL)
 #pragma config PLL96MHZ = ON    //96MHz PLL Startup Select->96 MHz PLL is enabled automatically on start-up
 #pragma config PLLDIV = DIV2    //96 MHz PLL Prescaler Select->Oscillator input is divided by 2 (8 MHz input)
 #pragma config IESO = OFF    //Internal External Switchover->IESO mode (Two-Speed Start-up) is disabled
@@ -71,7 +71,7 @@
 #pragma config FWDTEN = ON    //Watchdog Timer->Watchdog Timer is enabled
 #pragma config ICS = PGx2    //Emulator Pin Placement Select bits->Emulator functions are shared with PGEC2/PGED2
 #pragma config GWRP = OFF    //General Segment Write Protect->Writes to program memory are allowed
-#pragma config GCP = OFF    //General Segment Code Protect->Code protection is disabled
+#pragma config GCP = ON    //General Segment Code Protect->Code protection is enabled for the entire program memory space
 #pragma config JTAGEN = OFF    //JTAG Port Enable->JTAG port is disabled
 
 #include "mcc.h"

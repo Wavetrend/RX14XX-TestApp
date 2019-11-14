@@ -61,6 +61,15 @@ void INTERRUPT_Initialize (void)
     //    URXI: U2RX - UART2 Receiver
     //    Priority: 1
         IPC7bits.U2RXIP = 1;
+    //    UERI: U3E - UART3 Error
+    //    Priority: 1
+        IPC20bits.U3ERIP = 1;
+    //    UTXI: U3TX - UART3 Transmitter
+    //    Priority: 1
+        IPC20bits.U3TXIP = 1;
+    //    URXI: U3RX - UART3 Receiver
+    //    Priority: 1
+        IPC20bits.U3RXIP = 1;
     //    TI: T5 - Timer5
     //    Priority: 1
         IPC7bits.T5IP = 1;
