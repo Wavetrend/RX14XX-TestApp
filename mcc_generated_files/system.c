@@ -14,7 +14,7 @@
     This header file provides implementations for driver APIs for all modules selected in the GUI.
     Generation Information :
         Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.145.0
-        Device            :  PIC24FJ128GB206
+        Device            :  PIC24FJ256GB206
     The generated drivers are tested against the following:
         Compiler          :  XC16 v1.36b
         MPLAB             :  MPLAB X v5.25
@@ -47,9 +47,10 @@
 #include "system.h"
 #include "interrupt_manager.h"
 #include "traps.h"
+#include "uart4.h"
 #include "tmr5.h"
-#include "uart3.h"
 #include "uart2.h"
+#include "uart3.h"
 
 void SYSTEM_Initialize(void)
 {
@@ -57,8 +58,9 @@ void SYSTEM_Initialize(void)
     INTERRUPT_Initialize();
     CLOCK_Initialize();
     UART2_Initialize();
-    TMR5_Initialize();
+    UART4_Initialize();
     UART3_Initialize();
+    TMR5_Initialize();
 }
 
 /**

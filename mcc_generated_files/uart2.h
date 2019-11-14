@@ -14,7 +14,7 @@
     This header file provides APIs for driver for UART2. 
     Generation Information : 
         Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.145.0
-        Device            :  PIC24FJ128GB206
+        Device            :  PIC24FJ256GB206
     The generated drivers are tested against the following:
         Compiler          :  XC16 v1.36b
         MPLAB             :  MPLAB X v5.25

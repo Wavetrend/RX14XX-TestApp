@@ -15,7 +15,7 @@
     This source file provides implementations for PIC24 / dsPIC33 / PIC32MM MCUs interrupts.
     Generation Information : 
         Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.145.0
-        Device            :  PIC24FJ128GB206
+        Device            :  PIC24FJ256GB206
     The generated drivers are tested against the following:
         Compiler          :  XC16 v1.36b
         MPLAB             :  MPLAB X v5.25
@@ -70,6 +70,15 @@ void INTERRUPT_Initialize (void)
     //    URXI: U3RX - UART3 Receiver
     //    Priority: 1
         IPC20bits.U3RXIP = 1;
+    //    UERI: U4E - UART4 Error
+    //    Priority: 1
+        IPC21bits.U4ERIP = 1;
+    //    UTXI: U4TX - UART4 Transmitter
+    //    Priority: 1
+        IPC22bits.U4TXIP = 1;
+    //    URXI: U4RX - UART4 Receiver
+    //    Priority: 1
+        IPC22bits.U4RXIP = 1;
     //    TI: T5 - Timer5
     //    Priority: 1
         IPC7bits.T5IP = 1;

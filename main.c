@@ -14,7 +14,7 @@
     This source file provides main entry point for system initialization and application code development.
     Generation Information :
         Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.145.0
-        Device            :  PIC24FJ128GB206
+        Device            :  PIC24FJ256GB206
     The generated drivers are tested against the following:
         Compiler          :  XC16 v1.36b
         MPLAB 	          :  MPLAB X v5.25
@@ -45,22 +45,47 @@
 /**
   Section: Included Files
 */
-#include "mcc_generated_files/system.h"
-#include "mcc_generated_files/tmr5.h"
 #include <stdio.h>
-#include <stdbool.h>
-#include <p24FJ128GB206.h>
 
+#include "mcc_generated_files/system.h"
+#include "mcc_generated_files/pin_manager.h"
+#include "mcc_generated_files/tmr5.h"
+
+/*
+                         Main application
+ */
 int main(void)
 {
     // initialize the device
     SYSTEM_Initialize();
+    uint32_t count = 0;
 
-    while(1) {
+    TMR5_SoftwareCounterClear();
+    TMR5_Start();
+    Led_2_SetHigh();
+    while (TMR5_SoftwareCounterGet() < 5) {
         ClrWdt();
-        printf("\nHello World");
-        for( size_t i=0 ; i<5000 ; i++);
     }
+    Led_2_SetLow();
+    TMR5_Stop();
+    
+    while (1)
+    {
+        // Add your application code
+        Led_1_SetLow();
+        for (uint32_t i=0 ; i < 100000 ; i++) {
+            Nop();
+        }
+        ClrWdt();
+        Led_1_SetHigh();
+        for (uint32_t i=0 ; i < 100000 ; i++) {
+            Nop();
+        }
+        for (size_t i=0 ; i < 100 ; i++) {
+            printf("\nHello World %ld", (uint32_t)count++);        
+        }
+    }
+
     return 1;
 }
 /**

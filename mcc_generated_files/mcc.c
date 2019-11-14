@@ -14,7 +14,7 @@
     This header file provides implementations for driver APIs for all modules selected in the GUI.
     Generation Information :
         Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.145.0
-        Device            :  PIC24FJ128GB206
+        Device            :  PIC24FJ256GB206
     The generated drivers are tested against the following:
         Compiler          :  XC16 v1.36b
         MPLAB             :  MPLAB X v5.25
@@ -46,7 +46,7 @@
 // Configuration bits: selected in the GUI
 
 // CONFIG3
-#pragma config WPFP = WPFP255    //Write Protection Flash Page Segment Boundary->Highest Page (same as page 85)
+#pragma config WPFP = WPFP255    //Write Protection Flash Page Segment Boundary->Highest Page (same as page 170)
 #pragma config SOSCSEL = EC    //Secondary Oscillator Power Mode Select->External clock (SCLKI) or Digital I/O mode(
 #pragma config WUTSEL = LEG    //Voltage Regulator Wake-up Time Select->Default regulator start-up time is used
 #pragma config ALTPMP = ALPMPDIS    //Alternate PMP Pin Mapping->EPMP pins are in default location mode
@@ -71,7 +71,7 @@
 #pragma config FWDTEN = ON    //Watchdog Timer->Watchdog Timer is enabled
 #pragma config ICS = PGx2    //Emulator Pin Placement Select bits->Emulator functions are shared with PGEC2/PGED2
 #pragma config GWRP = OFF    //General Segment Write Protect->Writes to program memory are allowed
-#pragma config GCP = ON    //General Segment Code Protect->Code protection is enabled for the entire program memory space
+#pragma config GCP = OFF    //General Segment Code Protect->Code protection is disabled
 #pragma config JTAGEN = OFF    //JTAG Port Enable->JTAG port is disabled
 
 #include "mcc.h"

@@ -16,7 +16,7 @@
     This source file provides implementations for PIN MANAGER.
     Generation Information :
         Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.145.0
-        Device            :  PIC24FJ128GB206
+        Device            :  PIC24FJ256GB206
     The generated drivers are tested against the following:
         Compiler          :  XC16 v1.36b
         MPLAB 	          :  MPLAB X v5.25
@@ -65,9 +65,9 @@ void PIN_MANAGER_Initialize (void)
     /****************************************************************************
      * Setting the Output Latch SFR(s)
      ***************************************************************************/
-    LATB = 0x0000;
+    LATB = 0x0004;
     LATC = 0x0000;
-    LATD = 0x0009;
+    LATD = 0x0029;
     LATE = 0x0000;
     LATF = 0x0000;
     LATG = 0x0000;
@@ -75,9 +75,9 @@ void PIN_MANAGER_Initialize (void)
     /****************************************************************************
      * Setting the GPIO Direction SFR(s)
      ***************************************************************************/
-    TRISB = 0xFFFF;
+    TRISB = 0xFFFB;
     TRISC = 0x7000;
-    TRISD = 0x0BF6;
+    TRISD = 0x0B16;
     TRISE = 0x00FF;
     TRISF = 0x003B;
     TRISG = 0x03CC;
@@ -91,7 +91,7 @@ void PIN_MANAGER_Initialize (void)
     CNPD4 = 0x0000;
     CNPD5 = 0x0000;
     CNPD6 = 0x0000;
-    CNPU1 = 0x0000;
+    CNPU1 = 0x0010;
     CNPU2 = 0x0000;
     CNPU3 = 0x0000;
     CNPU4 = 0x0000;
@@ -111,9 +111,9 @@ void PIN_MANAGER_Initialize (void)
     /****************************************************************************
      * Setting the Analog/Digital Configuration SFR(s)
      ***************************************************************************/
-    ANSB = 0xFF3F;
+    ANSB = 0xFF3B;
     ANSC = 0x6000;
-    ANSD = 0x00C0;
+    ANSD = 0x0000;
     ANSF = 0x0001;
     ANSG = 0x03C0;
 
@@ -123,12 +123,14 @@ void PIN_MANAGER_Initialize (void)
      ***************************************************************************/
     __builtin_write_OSCCONL(OSCCON & 0xbf); // unlock PPS
 
-    RPOR5bits.RP11R = 0x001C;    //RD0->UART3:U3TX
-    RPOR1bits.RP3R = 0x001D;    //RD10->UART3:U3RTS
-    RPOR11bits.RP22R = 0x0005;    //RD3->UART2:U2TX
     RPINR21bits.U3CTSR = 0x000C;    //RD11->UART3:U3CTS
-    RPINR17bits.U3RXR = 0x0004;    //RD9->UART3:U3RX
+    RPOR5bits.RP11R = 0x001C;    //RD0->UART3:U3TX
+    RPOR11bits.RP22R = 0x0005;    //RD3->UART2:U2TX
+    RPOR1bits.RP3R = 0x001D;    //RD10->UART3:U3RTS
     RPINR19bits.U2RXR = 0x0017;    //RD2->UART2:U2RX
+    RPINR17bits.U3RXR = 0x0004;    //RD9->UART3:U3RX
+    RPOR10bits.RP20R = 0x001E;    //RD5->UART4:U4TX
+    RPINR27bits.U4RXR = 0x0019;    //RD4->UART4:U4RX
 
     __builtin_write_OSCCONL(OSCCON | 0x40); // lock PPS
 

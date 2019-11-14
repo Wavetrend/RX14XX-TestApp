@@ -14,7 +14,7 @@
     This source file provides APIs for driver for UART3. 
     Generation Information : 
         Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.145.0
-        Device            :  PIC24FJ128GB206
+        Device            :  PIC24FJ256GB206
     The generated drivers are tested against the following:
         Compiler          :  XC16 v1.36b
         MPLAB             :  MPLAB X v5.25
@@ -73,8 +73,8 @@ static bool volatile rxOverflowed;
 
 */
 
-#define UART3_CONFIG_TX_BYTEQ_LENGTH (8+1)
-#define UART3_CONFIG_RX_BYTEQ_LENGTH (8+1)
+#define UART3_CONFIG_TX_BYTEQ_LENGTH (254+1)
+#define UART3_CONFIG_RX_BYTEQ_LENGTH (254+1)
 
 /** UART Driver Queue
 

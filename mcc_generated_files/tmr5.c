@@ -15,7 +15,7 @@
     This source file provides APIs for driver for TMR5. 
     Generation Information : 
         Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.145.0
-        Device            :  PIC24FJ128GB206
+        Device            :  PIC24FJ256GB206
     The generated drivers are tested against the following:
         Compiler          :  XC16 v1.36b
         MPLAB             :  MPLAB X v5.25
@@ -92,10 +92,10 @@ void TMR5_Initialize (void)
 {
     //TMR5 0; 
     TMR5 = 0x00;
-    //Period = 0.0009998915 s; Frequency = 14745600 Hz; PR5 1842; 
-    PR5 = 0x732;
-    //TCKPS 1:8; TON enabled; TSIDL disabled; TCS FOSC/2; TGATE disabled; 
-    T5CON = 0x8010;
+    //Period = 1 s; Frequency = 14745600 Hz; PR5 57599; 
+    PR5 = 0xE0FF;
+    //TCKPS 1:256; TON enabled; TSIDL disabled; TCS FOSC/2; TGATE disabled; 
+    T5CON = 0x8030;
 
     if(TMR5_InterruptHandler == NULL)
     {
