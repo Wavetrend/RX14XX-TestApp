@@ -55,65 +55,6 @@
                          Main application
  */
 
-typedef void (*isr_callback_t)(void * const context);
-typedef bool (*isr_add_observer_t)(isr_callback_t const callback, void * const context);
-
-typedef struct {
-    isr_callback_t callback;
-    void * context;
-} isr_observer_t;
-
-#define DEFINE_ISR(NAME, FLAG, MAX_OBS) \
-    static isr_observer_t NAME ## _observers[MAX_OBS] = {}; \
-    void __attribute__ ( ( interrupt, no_auto_psv ) ) NAME (void) { \
-        for(size_t i=0 ; i < MAX_OBS ; i++) { \
-            if (NAME ## _observers[i].callback != NULL) { \
-                NAME ## _observers[i].callback(NAME ## _observers[i].context); \
-            } \
-        } \
-        FLAG=0; \
-    } \
-    bool NAME ## _add_observer(isr_callback_t const callback, void * const context) { \
-        bool ok = false; \
-        for(size_t i=0 ; i < MAX_OBS ; i++) { \
-            if (NAME ## _observers[i].callback == NULL) { \
-                NAME ## _observers[i].callback = callback; \
-                NAME ## _observers[i].context = context; \
-                ok = true; \
-                break; \
-            } \
-        } \
-        return ok; \
-    }
-
-DEFINE_ISR(_T5Interrupt, _T5IF, 5);
-
-#define DEFINE_TIMER(NAME, ISR, PERIOD_REG, PERIOD_VAL, TCON, TCKPS, TCKPS_VAL, TON, TMIE, TMIF) \
-    typedef struct { \
-        uint32_t volatile tick_count; \
-        uint32_t volatile tick_limit; \
-    } NAME ## _t; \
-    static void NAME ## _handler(void * const context) { \
-        NAME ## _t * const self = context; \
-        self->tick_count++; \
-    } \
-    bool NAME ## _completed(NAME ## _t * const self) { \
-        return self->tick_count >= self->tick_limit; \
-    } \
-    bool NAME ## _init(NAME ## _t * const self, uint32_t const ticks) { \
-        self->tick_count = 0; \
-        self->tick_limit = ticks; \
-        PERIOD_REG = PERIOD_VAL; \
-        TCON = 0; \
-        TCKPS = TCKPS_VAL; \
-        TMIF = 0; \
-        TMIE = 1; \
-        TON = 1; \
-        return ISR ## _add_observer(NAME ## _handler, self); \
-    }
-
-DEFINE_TIMER(millisecond_timer, _T5Interrupt, PR5, 0x399, T5CON, T5CONbits.TCKPS, 3, T5CONbits.TON, _T5IE, _T5IF);
-
 ///////////////////////////////// GPIO ///////////////////////////////////////
 
 typedef struct {
@@ -174,10 +115,14 @@ bool wthal_gpio_output_drain(wthal_gpio_t * const self, bool const enable) {
     return self->impl->output_drain(self->context, enable);
 }
 
-#define DEFINE_GPIO(NAME, PORT, TRIS, LAT, ANS, WPU, WPD, ODRAIN) \
+#define DECLARE_GPIO(NAME) \
     typedef struct { \
         wthal_gpio_t gpio; \
     } NAME ## _t; \
+    wthal_gpio_t * const NAME ## _init(NAME ## _t * const self);
+
+#define DEFINE_GPIO(NAME, PORT, TRIS, LAT, ANS, WPU, WPD, ODRAIN) \
+    DECLARE_GPIO(NAME) \
     static bool NAME ## _set_impl(void * const context, bool const high) { \
         LAT = high; \
         return true; \
@@ -240,7 +185,7 @@ int app_main(
         // initialize the device
     SYSTEM_Initialize();
     uint32_t count = 0;
-        
+    
     TMR5_SoftwareCounterClear();
     TMR5_Start();
     wthal_gpio_set(startup_led, true);
@@ -279,6 +224,7 @@ int main(void)
     wthal_gpio_t * const p_startup_led = wt_rx14xx_led1_init(&startup_led);
     wthal_gpio_t * const p_activity_led = wt_rx14xx_led2_init(&activity_led);
     wthal_gpio_t * const p_xpc_reset = wt_rx14xx_xpc_reset_init(&xpc_reset);
+    wthal_gpio_weak_pull_up(p_xpc_reset, true);
     
     return app_main(
         p_startup_led,
