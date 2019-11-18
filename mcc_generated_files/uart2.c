@@ -480,3 +480,21 @@ void __attribute__((deprecated)) UART2_Disable(void)
     U2MODEbits.UARTEN = 0;
     U2STAbits.UTXEN = 0;
 }
+
+int __attribute__((__section__(".libc.write"))) write(int handle, void *buffer, unsigned int len) 
+{
+    unsigned int i;
+    uint8_t *data = buffer;
+
+    for(i=0; i<len; i++)
+    {
+        while(UART2_IsTxReady() == false)
+        {
+        }
+
+        UART2_Write(*data++);
+    }
+  
+    return(len);
+}
+

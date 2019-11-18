@@ -288,23 +288,6 @@ bool UART3_IsTxDone(void)
     return false;
 }
 
-int __attribute__((__section__(".libc.write"))) write(int handle, void *buffer, unsigned int len) 
-{
-    unsigned int i;
-    uint8_t *data = buffer;
-
-    for(i=0; i<len; i++)
-    {
-        while(UART3_IsTxReady() == false)
-        {
-        }
-
-        UART3_Write(*data++);
-    }
-  
-    return(len);
-}
-
 /*******************************************************************************
 
   !!! Deprecated API !!!

@@ -60,7 +60,7 @@ void SYSTEM_Initialize(void)
     UART2_Initialize();
     UART4_Initialize();
     UART3_Initialize();
-    TMR5_Initialize();
+//    TMR5_Initialize();
 }
 
 /**
