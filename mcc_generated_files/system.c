@@ -47,10 +47,9 @@
 #include "system.h"
 #include "interrupt_manager.h"
 #include "traps.h"
-#include "uart4.h"
-#include "tmr5.h"
 #include "uart2.h"
 #include "uart3.h"
+#include "uart4.h"
 
 void SYSTEM_Initialize(void)
 {
@@ -58,9 +57,8 @@ void SYSTEM_Initialize(void)
     INTERRUPT_Initialize();
     CLOCK_Initialize();
     UART2_Initialize();
-    UART4_Initialize();
     UART3_Initialize();
-//    TMR5_Initialize();
+    UART4_Initialize();
 }
 
 /**

@@ -46,11 +46,11 @@
   Section: Included Files
 */
 #include <stdio.h>
+#include <stdbool.h>
 #include <p24FJ256GB206.h>
 
 #include "mcc_generated_files/system.h"
 #include "mcc_generated_files/pin_manager.h"
-#include "mcc_generated_files/tmr5.h"
 
 #include "utlist.h"
 
@@ -201,6 +201,16 @@ typedef struct {
     
 } wthal_isr_t;
 
+typedef enum {
+    wthal_isr_priority_1 = 1,
+    wthal_isr_priority_2 = 2,
+    wthal_isr_priority_3 = 3,
+    wthal_isr_priority_4 = 4,
+    wthal_isr_priority_5 = 5,
+    wthal_isr_priority_6 = 6,
+    wthal_isr_priority_7 = 7,
+} wthal_isr_priority_t;
+
 wthal_isr_t * const wthal_isr_init(wthal_isr_t * const self, wthal_isr_impl_t * const impl, void * const context) {
     self->impl = impl;
     self->context = context;
@@ -215,7 +225,7 @@ bool wthal_isr_add_observer(wthal_isr_t * const self, void (*callback)(void * co
     return self->impl->add_observer(self->context, callback, context);
 }
 
-#define DEFINE_ISR(NAME, ISR, IF, IE) \
+#define DEFINE_ISR(NAME, ISR, IF, IE, IP) \
     typedef struct { \
         wthal_isr_t isr; \
     } NAME ## _t; \
@@ -246,14 +256,15 @@ bool wthal_isr_add_observer(wthal_isr_t * const self, void (*callback)(void * co
         .enable = NAME ## _enable_impl, \
         .add_observer = NAME ## _add_observer_impl, \
     }; \
-    wthal_isr_t * const NAME ## _init(NAME ## _t * const self, wthal_observer_t * const observers, size_t const size) { \
+    wthal_isr_t * const NAME ## _init(NAME ## _t * const self, wthal_isr_priority_t const interrupt_priority, wthal_observer_t * const observers, size_t const size) { \
+        IP = interrupt_priority; \
         for (size_t i=0 ; i < size ; i++) { \
             wthal_observers_add(&NAME ## _inactive, &observers[i]); \
         } \
         return wthal_isr_init(&self->isr, &NAME ## _impl, self); \
     }
 
-DEFINE_ISR(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE)
+DEFINE_ISR(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP)
 
 ///////////////////////////////// GPIO ///////////////////////////////////////
 
@@ -423,7 +434,7 @@ int main(void)
 {
     wthal_observer_t t5_observers[5];
     wt_rx14xx_tmr5_t t5isr;
-    wthal_isr_t * p_t5isr = wt_rx14xx_tmr5_init(&t5isr, t5_observers, sizeof(t5_observers) / sizeof(t5_observers[0]));
+    wthal_isr_t * p_t5isr = wt_rx14xx_tmr5_init(&t5isr, wthal_isr_priority_4, t5_observers, sizeof(t5_observers) / sizeof(t5_observers[0]));
     
     wt_rx14xx_led1_t startup_led;
     wt_rx14xx_led2_t activity_led;

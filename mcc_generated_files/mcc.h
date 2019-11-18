@@ -52,10 +52,9 @@
 #include <stdbool.h>
 #include "interrupt_manager.h"
 #include "traps.h"
-#include "uart4.h"
-#include "tmr5.h"
 #include "uart2.h"
 #include "uart3.h"
+#include "uart4.h"
 
 #ifndef _XTAL_FREQ
 #define _XTAL_FREQ  29491200UL
