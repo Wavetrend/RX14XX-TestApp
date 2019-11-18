@@ -124,7 +124,7 @@ DEFINE_TIMER(wt_rx14xx_timer5, 14745600, TMR5, PR5, T5CONbits.TON, T5CONbits.TCK
 //-------------------------
 
 typedef struct {
-    uint32_t count;
+    uint32_t volatile count;
 } wthal_counter_t;
 
 wthal_counter_t * const wthal_counter_init(wthal_counter_t * const self) {
@@ -158,17 +158,17 @@ typedef struct wthal_observer_tag wthal_observer_t;
 struct wthal_observer_tag {
     void (*callback)(void * const context);
     void * context;
-    wthal_observer_t * next;
-    wthal_observer_t * prev;
+    wthal_observer_t * volatile next;
+    wthal_observer_t * volatile prev;
 };
 
 typedef struct {
-    wthal_observer_t * head;
+    wthal_observer_t * volatile head;
 } wthal_observers_t;
 
 void wthal_observers_dispatch(wthal_observers_t * const self) {
-    wthal_observer_t * el;
-    DL_FOREACH(self->head, el) {
+    wthal_observer_t * el, * tmp;
+    DL_FOREACH_SAFE(self->head, el, tmp) {
         el->callback(el->context);
     }
 }
