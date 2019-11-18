@@ -91,17 +91,30 @@ bool wthal_timer_stop(wthal_timer_t * const self) {
 //---------------------------------
 // XTAL 14745600
 
+typedef enum { 
+    wt_rx14xx_timer_prescale_1 = 0,
+    wt_rx14xx_timer_prescale_8 = 1,
+    wt_rx14xx_timer_prescale_64 = 2,
+    wt_rx14xx_timer_prescale_256 = 3,
+} wt_rx14xx_timer_prescale_t;
+
 #define DEFINE_TIMER(NAME, XTAL, TIMER, PERIOD, TON, TCKPS, IF) \
     typedef struct { \
         wthal_timer_t timer; \
     } NAME ## _t; \
     static bool start_impl(void * const context, uint32_t const msecs) { \
         float prescale[4] = { 1, 8, 64, 256 }; \
+        bool ok = true; \
         TON = 0; \
-        TIMER = 0; \
-        PERIOD = ((XTAL / prescale[TCKPS]) / 1000) * msecs; \
-        IF = 0; \
-        TON = 1; \
+        uint32_t period = ((XTAL / prescale[TCKPS]) / 1000) * msecs; \
+        if (period <= UINT16_MAX) { \
+            PERIOD = (uint16_t)period; \
+            TIMER = 0; \
+            IF = 0; \
+            TON = 1; \
+        } else { \
+            ok = false; \
+        } \
         return true; \
     } \
     static bool stop_impl(void * const context) { \
@@ -112,14 +125,14 @@ bool wthal_timer_stop(wthal_timer_t * const self) {
         .start = start_impl, \
         .stop = stop_impl, \
     }; \
-    wthal_timer_t * const NAME ## _init(NAME ## _t * const self, uint8_t const prescale) { \
+    wthal_timer_t * const NAME ## _init(NAME ## _t * const self, wt_rx14xx_timer_prescale_t const prescale) { \
         TON = 0; \
         TIMER = 0; \
         TCKPS = prescale; \
         return wthal_timer_init(&self->timer, &NAME ## _impl, self); \
     }
 
-DEFINE_TIMER(wt_rx14xx_timer5, 14745600, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF)
+DEFINE_TIMER(wt_rx14xx_timer5, 7372800, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF)
 
 //-------------------------
 
@@ -421,7 +434,7 @@ int app_main(
             ClrWdt();
             Nop();
         }
-        for (size_t i=0 ; i < 100 ; i++) {
+        for (size_t i=0 ; i < 1 ; i++) {
             printf("\nHello World %ld", (uint32_t)count++);        
         }
     }
@@ -445,7 +458,7 @@ int main(void)
     wthal_gpio_weak_pull_up(p_xpc_reset, true);
     
     wt_rx14xx_timer5_t timer5;
-    wthal_timer_t * const p_timer = wt_rx14xx_timer5_init(&timer5, 3);
+    wthal_timer_t * const p_timer = wt_rx14xx_timer5_init(&timer5, wt_rx14xx_timer_prescale_256);
 
     wthal_counter_t t5counter;
     wthal_counter_init(&t5counter);
