@@ -108,18 +108,21 @@ typedef enum {
     } NAME ## _t; \
     static bool start_impl(void * const context, uint32_t const msecs) { \
         float prescale[4] = { 1, 8, 64, 256 }; \
-        bool ok = true; \
+        bool ok = false; \
         TON = 0; \
-        uint32_t period = (((XTAL / 2) / prescale[TCKPS]) / 1000) * msecs; \
-        if (period <= UINT16_MAX) { \
-            PERIOD = (uint16_t)period; \
-            TIMER = 0; \
-            IF = 0; \
-            TON = 1; \
-        } else { \
-            ok = false; \
+        for (size_t i=0 ; i < sizeof(prescale) / sizeof(float) ; i++) { \
+            uint32_t period = (((XTAL / 2) / prescale[i]) / 1000) * msecs; \
+            if (period <= UINT16_MAX) { \
+                TCKPS = i; \
+                PERIOD = (uint16_t)period; \
+                TIMER = 0; \
+                IF = 0; \
+                TON = 1; \
+                ok = true; \
+                break; \
+            } \
         } \
-        return true; \
+        return ok; \
     } \
     static bool stop_impl(void * const context) { \
         TON = 0; \
@@ -691,7 +694,7 @@ int app_main(wthal_t * const hal) {
 
     uint32_t count = 0;
 
-    printf("\nPR5=%u", PR5);
+    printf("\nPR5=%u, TCKPS=%u", PR5, T5CONbits.TCKPS);
     
     wthal_counter_reset(hal->counter);
     wthal_gpio_set(hal->startup_led, true);
