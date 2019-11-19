@@ -56,7 +56,7 @@ void SYSTEM_Initialize(void)
     PIN_MANAGER_Initialize();
     INTERRUPT_Initialize();
     CLOCK_Initialize();
-    UART2_Initialize();
+//    UART2_Initialize();
     UART3_Initialize();
     UART4_Initialize();
 }
