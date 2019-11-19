@@ -47,21 +47,20 @@
 */
 #include <stdio.h>
 #include <stdbool.h>
-#include <p24FJ256GB206.h>
 
+#include <xc.h>
 #include "mcc_generated_files/system.h"
-#include "mcc_generated_files/pin_manager.h"
 
 #include "utlist.h"
 
 #include "wtapi_circular_buffer.h"
 
-WTAPI_DECLARE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
-WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
-
 /*
                          Main application
  */
+
+WTAPI_DECLARE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
+WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 
 ////////////////////////////////// TMR ///////////////////////////////////////
 
@@ -111,7 +110,7 @@ typedef enum {
         float prescale[4] = { 1, 8, 64, 256 }; \
         bool ok = true; \
         TON = 0; \
-        uint32_t period = ((XTAL / prescale[TCKPS]) / 1000) * msecs; \
+        uint32_t period = (((XTAL / 2) / prescale[TCKPS]) / 1000) * msecs; \
         if (period <= UINT16_MAX) { \
             PERIOD = (uint16_t)period; \
             TIMER = 0; \
@@ -136,8 +135,6 @@ typedef enum {
         TCKPS = prescale; \
         return wthal_timer_init(&self->timer, &NAME ## _impl, self); \
     }
-
-DEFINE_TIMER(wt_rx14xx_timer5, 7372800, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF)
 
 //-------------------------
 
@@ -322,8 +319,6 @@ bool wthal_isr_add_observer(wthal_isr_t * const self, void (*callback)(void * co
         return wthal_isr_init(&self->isr, &NAME ## _impl, self); \
     }
 
-DEFINE_ISR(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP)
-
 ///////////////////////////////// GPIO ///////////////////////////////////////
 
 typedef struct {
@@ -441,10 +436,6 @@ bool wthal_gpio_output_drain(wthal_gpio_t * const self, bool const enable) {
         ODRAIN = 0; \
         return wthal_gpio_init(&self->gpio, &NAME ## _impl, self); \
     }
-
-DEFINE_GPIO(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7 )
-DEFINE_GPIO(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6 )
-DEFINE_GPIO(wt_rx14xx_xpc_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2 )
 
 ///////////////////////////////// UART ///////////////////////////////////////
 
@@ -599,7 +590,7 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
         .read = NAME ## _read_impl, \
         .write = NAME ## _write_impl, \
     }; \
-    wthal_uart_t * const NAME ## _init(NAME ## _t * const self, uint32_t const baudrate, bool const flowcontrol, uint8_t const tx_priority, uint8_t const rx_priority, uint8_t const err_priority) { \
+    wthal_uart_t * const NAME ## _init(NAME ## _t * const self, uint32_t const baudrate, bool const flowcontrol, wthal_isr_priority_t const tx_priority, wthal_isr_priority_t const rx_priority, wthal_isr_priority_t const err_priority) { \
         self->baudrate = baudrate; \
         self->flowcontrol = flowcontrol; \
         self->tx_isr = NAME ## _tx_init(&self->_tx_isr, tx_priority, self->tx_observers, 1); \
@@ -612,8 +603,6 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
         wt_rx14xx_uint8_buffer_init(&self->rx_buffer, self->rx_storage, 256, NULL); \
         return wthal_uart_init(&self->uart, &NAME ## _impl, self); \
     }
-
-DEFINE_UART(wt_rx14xx_debug_uart, 2, 14745600)
 
 //////////////////////////////// STDOUT ///////////////////////////////////////
 
@@ -633,34 +622,97 @@ bool wthal_set_stdout(wthal_uart_t * const uart) {
 
 ///////////////////////////////// MAIN ///////////////////////////////////////
 
-int app_main(
-    wthal_gpio_t * const startup_led,
-    wthal_gpio_t * const activity_led,
-    wthal_gpio_t * const xpc_reset,
-    wthal_counter_t * const counter
-) {
+#define PPS_UNLOCK()    __builtin_write_OSCCONL(OSCCON & 0xbf)
+#define PPS_LOCK()      __builtin_write_OSCCONL(OSCCON | 0x40)
+
+#define XTAL (14745600)
+
+DEFINE_UART(wt_rx14xx_debug_uart, 2, XTAL);
+DEFINE_GPIO(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7);
+DEFINE_GPIO(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6);
+DEFINE_GPIO(wt_rx1400_xpc_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
+DEFINE_ISR(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP);
+DEFINE_TIMER(wt_rx14xx_timer5, XTAL, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF);
+
+typedef struct {
+    
+    wthal_isr_t * t5_isr;
+    wthal_gpio_t * startup_led;
+    wthal_gpio_t * activity_led;
+    wthal_gpio_t * xpc_reset;
+    wthal_timer_t * timer5;
+    wthal_counter_t * counter;
+    wthal_uart_t * debug_uart;
+    
+} wthal_t;
+
+#define WT_RX1400_HAL_T5_OBSERVER_SIZE          (5)
+
+typedef struct {
+    
+    wthal_t hal;
+    
+    wthal_observer_t t5_observers[WT_RX1400_HAL_T5_OBSERVER_SIZE];
+    
+    wt_rx14xx_tmr5_t t5_isr;
+    wt_rx14xx_led1_t startup_led;
+    wt_rx14xx_led2_t activity_led;
+    wt_rx1400_xpc_reset_t xpc_reset;
+    wt_rx14xx_timer5_t timer5;
+    wthal_counter_t counter;
+    wt_rx14xx_debug_uart_t debug_uart;
+    
+} wt_rx1400_hal_t;
+
+wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self) {
+    
+    self->hal.t5_isr = wt_rx14xx_tmr5_init(&self->t5_isr, wthal_isr_priority_4, self->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE);
+    self->hal.startup_led = wt_rx14xx_led1_init(&self->startup_led);
+    self->hal.activity_led = wt_rx14xx_led2_init(&self->activity_led);
+    self->hal.xpc_reset = wt_rx1400_xpc_reset_init(&self->xpc_reset);
+    self->hal.timer5 = wt_rx14xx_timer5_init(&self->timer5, wt_rx14xx_timer_prescale_1);
+    self->hal.counter = wthal_counter_init(&self->counter);
+    self->hal.debug_uart = wt_rx14xx_debug_uart_init(&self->debug_uart, 230400, true, wthal_isr_priority_4, wthal_isr_priority_4, wthal_isr_priority_4);
+    
+    wthal_gpio_weak_pull_up(self->hal.xpc_reset, true);
+    
+    wthal_isr_add_observer(self->hal.t5_isr, wthal_counter_isr, self->hal.counter);
+    wthal_isr_enable(self->hal.t5_isr, true);
+    wthal_timer_start(self->hal.timer5, 1);
+    
+    wthal_uart_open(self->hal.debug_uart);
+    wthal_set_stdout(self->hal.debug_uart);
+    
+    return &self->hal;
+    
+}
+
+int app_main(wthal_t * const hal) {
+
     uint32_t count = 0;
 
-    wthal_counter_reset(counter);
-    wthal_gpio_set(startup_led, true);
-    while (wthal_counter_get(counter) < 3) {
+    printf("\nPR5=%u", PR5);
+    
+    wthal_counter_reset(hal->counter);
+    wthal_gpio_set(hal->startup_led, true);
+    while (wthal_counter_get(hal->counter) < 3000) {
         ClrWdt();
         Nop();
     }
-    wthal_gpio_set(startup_led, false);
+    wthal_gpio_set(hal->startup_led, false);
     
     while (1)
     {
         // Add your application code
-        wthal_gpio_set(activity_led, true);
-        wthal_counter_reset(counter);
-        while(wthal_counter_get(counter) < 1) {
+        wthal_gpio_set(hal->activity_led, true);
+        wthal_counter_reset(hal->counter);
+        while(wthal_counter_get(hal->counter) < 1000) {
             ClrWdt();
             Nop();
         }
-        wthal_gpio_set(activity_led, false);
-        wthal_counter_reset(counter);
-        while(wthal_counter_get(counter) < 1) {
+        wthal_gpio_set(hal->activity_led, false);
+        wthal_counter_reset(hal->counter);
+        while(wthal_counter_get(hal->counter) < 1000) {
             ClrWdt();
             Nop();
         }
@@ -673,9 +725,6 @@ int app_main(
 
 }
 
-#define PPS_UNLOCK()    __builtin_write_OSCCONL(OSCCON & 0xbf)
-#define PPS_LOCK()      __builtin_write_OSCCONL(OSCCON | 0x40)
-
 int main(void)
 {
     // initialize the device - MUST COME FIRST OR WILL OVERRIDE HAL STYLE CONFIG
@@ -687,40 +736,11 @@ int main(void)
     _RP22R = _RPOUT_U2TX;       // RP22/RD3->UART2:U2TX
 
     PPS_LOCK();
+    
+    wt_rx1400_hal_t rx1400_hal;
+    wthal_t * hal = wt_rx1400_hal_init(&rx1400_hal);
  
-    wthal_observer_t t5_observers[5];
-    wt_rx14xx_tmr5_t t5isr;
-    wthal_isr_t * p_t5isr = wt_rx14xx_tmr5_init(&t5isr, wthal_isr_priority_4, t5_observers, sizeof(t5_observers) / sizeof(t5_observers[0]));
-    
-    wt_rx14xx_led1_t startup_led;
-    wt_rx14xx_led2_t activity_led;
-    wt_rx14xx_xpc_reset_t xpc_reset;
-    wthal_gpio_t * const p_startup_led = wt_rx14xx_led1_init(&startup_led);
-    wthal_gpio_t * const p_activity_led = wt_rx14xx_led2_init(&activity_led);
-    wthal_gpio_t * const p_xpc_reset = wt_rx14xx_xpc_reset_init(&xpc_reset);
-    wthal_gpio_weak_pull_up(p_xpc_reset, true);
-    
-    wt_rx14xx_timer5_t timer5;
-    wthal_timer_t * const p_timer = wt_rx14xx_timer5_init(&timer5, wt_rx14xx_timer_prescale_256);
-
-    wthal_counter_t t5counter;
-    wthal_counter_init(&t5counter);
-    wthal_isr_add_observer(p_t5isr, wthal_counter_isr, &t5counter);
-    
-    wthal_isr_enable(p_t5isr, true);
-    wthal_timer_start(p_timer, 1000);
-    
-    wt_rx14xx_debug_uart_t debug;
-    wthal_uart_t * p_debug = wt_rx14xx_debug_uart_init(&debug, 230400, true, 4, 4, 4);
-    wthal_uart_open(p_debug);
-    wthal_set_stdout(p_debug);
-
-    return app_main(
-        p_startup_led,
-        p_activity_led,
-        p_xpc_reset,
-        &t5counter
-    );
+    return app_main(hal);
 
 }
 /**
