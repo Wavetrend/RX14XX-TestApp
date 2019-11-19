@@ -45,20 +45,18 @@
 #include "pin_manager.h"
 #include "clock.h"
 #include "system.h"
+#include "uart4.h"
+#include "uart3.h"
 #include "interrupt_manager.h"
 #include "traps.h"
-#include "uart2.h"
-#include "uart3.h"
-#include "uart4.h"
 
 void SYSTEM_Initialize(void)
 {
     PIN_MANAGER_Initialize();
     INTERRUPT_Initialize();
     CLOCK_Initialize();
-//    UART2_Initialize();
-    UART3_Initialize();
     UART4_Initialize();
+    UART3_Initialize();
 }
 
 /**

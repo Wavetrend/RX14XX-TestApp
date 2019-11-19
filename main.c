@@ -639,8 +639,6 @@ int app_main(
     wthal_gpio_t * const xpc_reset,
     wthal_counter_t * const counter
 ) {
-        // initialize the device
-    SYSTEM_Initialize();
     uint32_t count = 0;
 
     wthal_counter_reset(counter);
@@ -675,8 +673,21 @@ int app_main(
 
 }
 
+#define PPS_UNLOCK()    __builtin_write_OSCCONL(OSCCON & 0xbf)
+#define PPS_LOCK()      __builtin_write_OSCCONL(OSCCON | 0x40)
+
 int main(void)
 {
+    // initialize the device - MUST COME FIRST OR WILL OVERRIDE HAL STYLE CONFIG
+    SYSTEM_Initialize();
+
+    PPS_UNLOCK();
+
+    _U2RXR = 23;                // UART2:U2RX->RP23/RD2
+    _RP22R = _RPOUT_U2TX;       // RP22/RD3->UART2:U2TX
+
+    PPS_LOCK();
+ 
     wthal_observer_t t5_observers[5];
     wt_rx14xx_tmr5_t t5isr;
     wthal_isr_t * p_t5isr = wt_rx14xx_tmr5_init(&t5isr, wthal_isr_priority_4, t5_observers, sizeof(t5_observers) / sizeof(t5_observers[0]));
@@ -703,7 +714,7 @@ int main(void)
     wthal_uart_t * p_debug = wt_rx14xx_debug_uart_init(&debug, 230400, true, 4, 4, 4);
     wthal_uart_open(p_debug);
     wthal_set_stdout(p_debug);
-    
+
     return app_main(
         p_startup_led,
         p_activity_led,
