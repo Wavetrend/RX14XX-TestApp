@@ -490,10 +490,37 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
     return self->impl->write(self->context, data, size);
 }
 
+#ifndef UART_TESTING
+#define UART_TX_ISR(X)          (_U ## X ## TXInterrupt)
+#define UART_RX_ISR(X)          (_U ## X ## RXInterrupt)
+#define UART_ERR_ISR(X)         (_U ## X ## ErrInterrupt)
+#define UART_TXIE(X)            (_U ## X ## TXIE)
+#define UART_TXIF(X)            (_U ## X ## TXIF)
+#define UART_TXIP(X)            (_U ## X ## TXIP)
+#define UART_RXIE(X)            (_U ## X ## RXIE)
+#define UART_RXIF(X)            (_U ## X ## RXIF)
+#define UART_RXIP(X)            (_U ## X ## RXIP)
+#define UART_ERIE(X)            (_U ## X ## ERIE)
+#define UART_ERIF(X)            (_U ## X ## ERIF)
+#define UART_ERIP(X)            (_U ## X ## ERIP)
+#define UART_TXBF(X)            (U ## X ## STAbits.UTXBF)
+#define UART_TXREG(X)           (U ## X ## TXREG)
+#define UART_RXREG(X)           (U ## X ## RXREG)
+#define UART_STA(X)             (U ## X ## STA)
+#define UART_RXDA(X)            (U ## X ## STAbits.URXDA)
+#define UART_OERR(X)            (U ## X ## STAbits.OERR)
+#define UART_MODE(X)            (U ## X ## MODE)
+#define UART_BRGH(X)            (U ## X ## MODEbits.BRGH)
+#define UART_BRG(X)             (U ## X ## BRG)
+#define UART_UARTEN(X)          (U ## X ## MODEbits.UARTEN)
+#define UART_TXEN(X)            (U ## X ## STAbits.UTXEN)
+#define UART_EN(X)              (U ## X ## MODEbits.UEN)
+#endif /* UART_TESTING */
+
 #define DEFINE_UART(NAME, UART, XTAL) \
-    DEFINE_ISR(NAME ## _tx, _U ## UART ## TXInterrupt, _U ## UART ## TXIF, _U ## UART ## TXIE, _U ## UART ## TXIP); \
-    DEFINE_ISR(NAME ## _rx, _U ## UART ## RXInterrupt, _U ## UART ## RXIF, _U ## UART ## RXIE, _U ## UART ## RXIP); \
-    DEFINE_ISR(NAME ## _err, _U ## UART ## ErrInterrupt, _U ## UART ## ERIF, _U ## UART ## ERIE, _U ## UART ## ERIP); \
+    DEFINE_ISR(NAME ## _tx, UART_TX_ISR(UART), UART_TXIF(UART), UART_TXIE(UART), UART_TXIP(UART)); \
+    DEFINE_ISR(NAME ## _rx, UART_RX_ISR(UART), UART_RXIF(UART), UART_RXIE(UART), UART_RXIP(UART)); \
+    DEFINE_ISR(NAME ## _err, UART_ERR_ISR(UART), UART_ERIF(UART), UART_ERIE(UART), UART_ERIP(UART)); \
     typedef struct { \
         uint32_t baudrate; \
         bool flowcontrol; \
@@ -514,10 +541,10 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
     } NAME ## _t; \
     static void NAME ## _tx_isr_impl(void * const context) { \
         NAME ## _t * const self = context; \
-        while (! U ## UART ## STAbits.UTXBF) { \
+        while (! UART_TXBF(UART)) { \
             uint8_t data; \
             if (wt_rx14xx_uint8_buffer_read(&self->tx_buffer, &data, sizeof(data), NULL)) { \
-                U ## UART ## TXREG = data; \
+                UART_TXREG(UART) = data; \
             } else { \
                 wthal_isr_enable(self->tx_isr, false); \
                 break; \
@@ -527,28 +554,28 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
     static void NAME ## _rx_isr_impl(void * const context) { \
         NAME ## _t * const self = context; \
         bool ok = true; \
-        while (ok && U ## UART ## STAbits.URXDA) { \
-            uint8_t data = U ## UART ## RXREG; \
+        while (ok && UART_RXDA(UART)) { \
+            uint8_t data = UART_RXREG(UART); \
             ok = !ok ? ok : wt_rx14xx_uint8_buffer_write(&self->rx_buffer, &data, sizeof(data), NULL); \
         } \
     } \
     static void NAME ## _err_isr_impl(void * const context) { \
-        if (U ## UART ## STAbits.OERR == 1) { \
-            U ## UART ## STAbits.OERR = 0; \
+        if (UART_OERR(UART) == 1) { \
+            UART_OERR(UART) = 0; \
         } \
     } \
     static bool NAME ## _open_impl(void * const context) { \
         NAME ## _t * const self = context; \
-        U ## UART ## MODE = 0x0000; \
-        U ## UART ## MODEbits.BRGH = 1; \
-        U ## UART ## STA = 0x0000; \
+        UART_MODE(UART) = 0x0000; \
+        UART_BRGH(UART) = 1; \
+        UART_STA(UART) = 0x0000; \
         wthal_uart_baudrate(&self->uart, self->baudrate); \
         wthal_uart_flowcontrol(&self->uart, self->flowcontrol); \
         wthal_isr_enable(self->tx_isr, false); \
         wthal_isr_enable(self->rx_isr, true); \
         wthal_isr_enable(self->err_isr, true); \
-        U ## UART ## MODEbits.UARTEN = 1; \
-        U ## UART ## STAbits.UTXEN = 1; \
+        UART_UARTEN(UART) = 1; \
+        UART_TXEN(UART) = 1; \
         return true; \
     } \
     static bool NAME ## _close_impl(void * const context) { \
@@ -556,20 +583,20 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
         wthal_isr_enable(self->tx_isr, false); \
         wthal_isr_enable(self->rx_isr, false); \
         wthal_isr_enable(self->err_isr, false); \
-        U ## UART ## MODEbits.UARTEN = 0; \
-        U ## UART ## STAbits.UTXEN = 0; \
+        UART_UARTEN(UART) = 0; \
+        UART_TXEN(UART) = 0; \
         return true; \
     } \
     static bool NAME ## _baudrate_impl(void * const context, uint32_t const baudrate) { \
         NAME ## _t * const self = context; \
         self->baudrate = baudrate; \
-        U ## UART ## BRG = (XTAL / (4 * self->baudrate)) - 1; \
+        UART_BRG(UART) = (XTAL / (4 * self->baudrate)) - 1; \
         return true; \
     } \
     static bool NAME ## _flowcontrol_impl(void * const context, bool const flowcontrol) { \
         NAME ## _t * const self = context; \
         self->flowcontrol = flowcontrol; \
-        U ## UART ## MODEbits.UEN = self->flowcontrol ? 2 : 0; \
+        UART_EN(UART) = self->flowcontrol ? 2 : 0; \
         return true; \
     } \
     static size_t NAME ## _read_impl(void * const context, void * const data, size_t const size) { \
@@ -694,8 +721,6 @@ int app_main(wthal_t * const hal) {
 
     uint32_t count = 0;
 
-    printf("\nPR5=%u, TCKPS=%u", PR5, T5CONbits.TCKPS);
-    
     wthal_counter_reset(hal->counter);
     wthal_gpio_set(hal->startup_led, true);
     while (wthal_counter_get(hal->counter) < 3000) {
