@@ -119,10 +119,13 @@ typedef enum {
     wt_rx14xx_timer_prescale_256 = 3,
 } wt_rx14xx_timer_prescale_t;
 
-#define DEFINE_TIMER(NAME, XTAL, TIMER, PERIOD, TON, TCKPS, IF) \
+#define WTHAL_TIMER_DECLARE(NAME) \
     typedef struct { \
         wthal_timer_t timer; \
     } NAME ## _t; \
+    wthal_timer_t * const NAME ## _init(NAME ## _t * const self, wt_rx14xx_timer_prescale_t const prescale, wt_error_t * const error);
+
+#define WTHAL_TIMER_DEFINE(NAME, XTAL, TIMER, PERIOD, TON, TCKPS, IF) \
     static bool start_impl(void * const context, uint32_t const msecs, wt_error_t * const error) { \
         float prescale[4] = { 1, 8, 64, 256 }; \
         bool ok = false; \
@@ -297,10 +300,13 @@ bool wthal_isr_add_observer(wthal_isr_t * const self, wthal_observer_callback_t 
     return self->impl->add_observer(self->context, callback, context, error);
 }
 
-#define DEFINE_ISR(NAME, ISR, IF, IE, IP) \
+#define WTHAL_ISR_DECLARE(NAME) \
     typedef struct { \
         wthal_isr_t isr; \
     } NAME ## _t; \
+    wthal_isr_t * const NAME ## _init(NAME ## _t * const self, wthal_isr_priority_t const interrupt_priority, wthal_observer_t * const observers, size_t const size, wt_error_t * const error);
+
+#define WTHAL_ISR_DEFINE(NAME, ISR, IF, IE, IP) \
     static wthal_observers_t NAME ## _active = {}; \
     static wthal_observers_t NAME ## _inactive = {}; \
     void __attribute__ (( interrupt, no_auto_psv )) ISR ( void ) { \
@@ -421,14 +427,13 @@ bool wthal_gpio_output_drain(wthal_gpio_t * const self, bool const enable, wt_er
     return self->impl->output_drain(self->context, enable, error);
 }
 
-#define DECLARE_GPIO(NAME) \
+#define WTHAL_GPIO_DECLARE(NAME) \
     typedef struct { \
         wthal_gpio_t gpio; \
     } NAME ## _t; \
     wthal_gpio_t * const NAME ## _init(NAME ## _t * const self, wt_error_t * const error);
 
-#define DEFINE_GPIO(NAME, PORT, TRIS, LAT, ANS, WPU, WPD, ODRAIN) \
-    DECLARE_GPIO(NAME) \
+#define WTHAL_GPIO_DEFINE(NAME, PORT, TRIS, LAT, ANS, WPU, WPD, ODRAIN) \
     static bool NAME ## _set_impl(void * const context, bool const high, wt_error_t * const error) { \
         LAT = high; \
         return true; \
@@ -560,10 +565,10 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
 #define UART_EN(X)              (U ## X ## MODEbits.UEN)
 #endif /* UART_TESTING */
 
-#define DEFINE_UART(NAME, UART, XTAL) \
-    DEFINE_ISR(NAME ## _tx, UART_TX_ISR(UART), UART_TXIF(UART), UART_TXIE(UART), UART_TXIP(UART)); \
-    DEFINE_ISR(NAME ## _rx, UART_RX_ISR(UART), UART_RXIF(UART), UART_RXIE(UART), UART_RXIP(UART)); \
-    DEFINE_ISR(NAME ## _err, UART_ERR_ISR(UART), UART_ERIF(UART), UART_ERIE(UART), UART_ERIP(UART)); \
+#define WTHAL_UART_DECLARE(NAME) \
+    WTHAL_ISR_DECLARE(NAME ## _tx) \
+    WTHAL_ISR_DECLARE(NAME ## _rx) \
+    WTHAL_ISR_DECLARE(NAME ## _err) \
     typedef struct { \
         uint32_t baudrate; \
         bool flowcontrol; \
@@ -582,6 +587,12 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
         uint8_t tx_storage[256]; \
         uint8_t rx_storage[256]; \
     } NAME ## _t; \
+    wthal_uart_t * const NAME ## _init(NAME ## _t * const self, uint32_t const baudrate, bool const flowcontrol, wthal_isr_priority_t const tx_priority, wthal_isr_priority_t const rx_priority, wthal_isr_priority_t const err_priority, wt_error_t * const error);
+
+#define WTHAL_UART_DEFINE(NAME, UART, XTAL) \
+    WTHAL_ISR_DEFINE(NAME ## _tx, UART_TX_ISR(UART), UART_TXIF(UART), UART_TXIE(UART), UART_TXIP(UART)); \
+    WTHAL_ISR_DEFINE(NAME ## _rx, UART_RX_ISR(UART), UART_RXIF(UART), UART_RXIE(UART), UART_RXIP(UART)); \
+    WTHAL_ISR_DEFINE(NAME ## _err, UART_ERR_ISR(UART), UART_ERIF(UART), UART_ERIE(UART), UART_ERIP(UART)); \
     static void NAME ## _tx_isr_impl(void * const context, wt_error_t * const error) { \
         NAME ## _t * const self = context; \
         while (! UART_TXBF(UART)) { \
@@ -702,12 +713,18 @@ bool wthal_set_stdout(wthal_uart_t * const uart, wt_error_t * const error) {
 
 #define XTAL (14745600)
 
-DEFINE_UART(wt_rx14xx_debug_uart, 2, XTAL);
-DEFINE_GPIO(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7);
-DEFINE_GPIO(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6);
-DEFINE_GPIO(wt_rx1400_xpc_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
-DEFINE_ISR(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP);
-DEFINE_TIMER(wt_rx14xx_timer5, XTAL, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF);
+WTHAL_UART_DECLARE(wt_rx14xx_debug_uart);
+WTHAL_UART_DEFINE(wt_rx14xx_debug_uart, 2, XTAL);
+WTHAL_GPIO_DECLARE(wt_rx14xx_led1);
+WTHAL_GPIO_DEFINE(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7);
+WTHAL_GPIO_DECLARE(wt_rx14xx_led2);
+WTHAL_GPIO_DEFINE(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6);
+WTHAL_GPIO_DECLARE(wt_rx1400_xpc_reset);
+WTHAL_GPIO_DEFINE(wt_rx1400_xpc_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
+WTHAL_ISR_DECLARE(wt_rx14xx_tmr5);
+WTHAL_ISR_DEFINE(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP);
+WTHAL_TIMER_DECLARE(wt_rx14xx_timer5);
+WTHAL_TIMER_DEFINE(wt_rx14xx_timer5, XTAL, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF);
 
 typedef struct {
     
