@@ -360,14 +360,14 @@ bool wthal_isr_add_observer(wthal_isr_t * const self, wthal_observer_callback_t 
 
 typedef struct {
 
-    bool (*set)(void * const, bool const high);
-    bool (*toggle)(void * const);
-    bool (*get)(void * const context);
-    bool (*input)(void * const context, bool const input);
-    bool (*analogue)(void * const context, bool const analogue);
-    bool (*weak_pull_up)(void * const context, bool const enable);
-    bool (*weak_pull_down)(void * const context, bool const enable);
-    bool (*output_drain)(void * const context, bool const enable);
+    bool (*set)(void * const, bool const high, wt_error_t * const error);
+    bool (*toggle)(void * const, wt_error_t * const error);
+    bool (*get)(void * const context, wt_error_t * const error);
+    bool (*input)(void * const context, bool const input, wt_error_t * const error);
+    bool (*analogue)(void * const context, bool const analogue, wt_error_t * const error);
+    bool (*weak_pull_up)(void * const context, bool const enable, wt_error_t * const error);
+    bool (*weak_pull_down)(void * const context, bool const enable, wt_error_t * const error);
+    bool (*output_drain)(void * const context, bool const enable, wt_error_t * const error);
     
 } wthal_gpio_impl_t;
 
@@ -378,79 +378,84 @@ typedef struct {
     
 } wthal_gpio_t;
 
-wthal_gpio_t * const wthal_gpio_init(wthal_gpio_t * const self, wthal_gpio_impl_t * const impl, void * const context) {
-    self->impl = impl;
-    self->context = context;
-    return self;
+wthal_gpio_t * const wthal_gpio_init(wthal_gpio_t * const self, wthal_gpio_impl_t * const impl, void * const context, wt_error_t * const error) {
+    bool ok = true;
+    ok = !ok ? ok : wt_assert_ptr(self, error);
+    ok = !ok ? ok : wt_assert_ptr(impl, error);
+    if (ok) {
+        self->impl = impl;
+        self->context = context;
+    }
+    return ok ? self : NULL;
 }
 
-bool wthal_gpio_set(wthal_gpio_t * const self, bool const high) {
-    return self->impl->set(self->context, high);
+bool wthal_gpio_set(wthal_gpio_t * const self, bool const high, wt_error_t * const error) {
+    return self->impl->set(self->context, high, error);
 }
 
-bool wthal_gpio_toggle(wthal_gpio_t * const self) {
-    return self->impl->toggle(self->context);
+bool wthal_gpio_toggle(wthal_gpio_t * const self, wt_error_t * const error) {
+    return self->impl->toggle(self->context, error);
 }
 
-bool wthal_gpio_get(wthal_gpio_t * const self) {
-    return self->impl->get(self->context);
+bool wthal_gpio_get(wthal_gpio_t * const self, wt_error_t * const error) {
+    return self->impl->get(self->context, error);
 }
 
-bool wthal_gpio_input(wthal_gpio_t * const self, bool const input) {
-    return self->impl->input(self->context, input);
+bool wthal_gpio_input(wthal_gpio_t * const self, bool const input, wt_error_t * const error) {
+    return self->impl->input(self->context, input, error);
 }
 
-bool wthal_gpio_analogue(wthal_gpio_t * const self, bool const analogue) {
-    return self->impl->analogue(self->context, analogue);
+bool wthal_gpio_analogue(wthal_gpio_t * const self, bool const analogue, wt_error_t * const error) {
+    return self->impl->analogue(self->context, analogue, error);
 }
 
-bool wthal_gpio_weak_pull_up(wthal_gpio_t * const self, bool const enable) {
-    return self->impl->weak_pull_up(self->context, enable);
+bool wthal_gpio_weak_pull_up(wthal_gpio_t * const self, bool const enable, wt_error_t * const error) {
+    return self->impl->weak_pull_up(self->context, enable, error);
 }
 
-bool wthal_gpio_weak_pull_down(wthal_gpio_t * const self, bool const enable) {
-    return self->impl->weak_pull_down(self->context, enable);
+bool wthal_gpio_weak_pull_down(wthal_gpio_t * const self, bool const enable, wt_error_t * const error) {
+    return self->impl->weak_pull_down(self->context, enable, error);
 }
 
-bool wthal_gpio_output_drain(wthal_gpio_t * const self, bool const enable) {
-    return self->impl->output_drain(self->context, enable);
+bool wthal_gpio_output_drain(wthal_gpio_t * const self, bool const enable, wt_error_t * const error) {
+    return self->impl->output_drain(self->context, enable, error);
 }
 
 #define DECLARE_GPIO(NAME) \
     typedef struct { \
         wthal_gpio_t gpio; \
     } NAME ## _t; \
-    wthal_gpio_t * const NAME ## _init(NAME ## _t * const self);
+    wthal_gpio_t * const NAME ## _init(NAME ## _t * const self, wt_error_t * const error);
 
 #define DEFINE_GPIO(NAME, PORT, TRIS, LAT, ANS, WPU, WPD, ODRAIN) \
     DECLARE_GPIO(NAME) \
-    static bool NAME ## _set_impl(void * const context, bool const high) { \
+    static bool NAME ## _set_impl(void * const context, bool const high, wt_error_t * const error) { \
         LAT = high; \
         return true; \
     } \
-    static bool NAME ## _toggle_impl(void * const context) { \
+    static bool NAME ## _toggle_impl(void * const context, wt_error_t * const error) { \
         return LAT ^= 1; \
     } \
-    static bool NAME ## _get_impl(void * const context) { \
+    static bool NAME ## _get_impl(void * const context, wt_error_t * const error) { \
         return PORT; \
     } \
-    static bool NAME ## _input_impl(void * const context, bool const input) { \
+    static bool NAME ## _input_impl(void * const context, bool const input, wt_error_t * const error) { \
         TRIS = input; \
         return true; \
     } \
-    static bool NAME ## _analogue_impl(void * const context, bool const analogue) { \
+    static bool NAME ## _analogue_impl(void * const context, bool const analogue, wt_error_t * const error) { \
         ANS = analogue; \
         return true; \
     } \
-    static bool NAME ## _weak_pull_up_impl(void * const context, bool const enabled) { \
+    static bool NAME ## _weak_pull_up_impl(void * const context, bool const enabled, wt_error_t * const error) { \
         WPU = enabled; \
         return true; \
     } \
-    static bool NAME ## _weak_pull_down_impl(void * const context, bool const enabled) { \
+    static bool NAME ## _weak_pull_down_impl(void * const context, bool const enabled, wt_error_t * const error) { \
         WPD = enabled; \
         return true; \
     } \
-    static bool NAME ## _output_drain_impl(void * const context, bool const enabled) { \
+    static bool NAME ## _output_drain_impl(void * const context, bool const enabled, wt_error_t * const error) { \
         ODRAIN = enabled; \
         return true; \
     } \
@@ -464,14 +469,14 @@ bool wthal_gpio_output_drain(wthal_gpio_t * const self, bool const enable) {
         .weak_pull_down = NAME ## _weak_pull_down_impl, \
         .output_drain = NAME ## _output_drain_impl, \
     }; \
-    wthal_gpio_t * const NAME ## _init(NAME ## _t * const self) { \
+    wthal_gpio_t * const NAME ## _init(NAME ## _t * const self, wt_error_t * const error) { \
         TRIS = 0; \
         LAT = 0; \
         ANS = 0; \
         WPU = 0; \
         WPD = 0; \
         ODRAIN = 0; \
-        return wthal_gpio_init(&self->gpio, &NAME ## _impl, self); \
+        return wthal_gpio_init(&self->gpio, &NAME ## _impl, self, error); \
     }
 
 ///////////////////////////////// UART ///////////////////////////////////////
@@ -737,14 +742,14 @@ typedef struct {
 wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self, wt_error_t * const error) {
     
     self->hal.t5_isr = wt_rx14xx_tmr5_init(&self->t5_isr, wthal_isr_priority_4, self->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE, error);
-    self->hal.startup_led = wt_rx14xx_led1_init(&self->startup_led);
-    self->hal.activity_led = wt_rx14xx_led2_init(&self->activity_led);
-    self->hal.xpc_reset = wt_rx1400_xpc_reset_init(&self->xpc_reset);
+    self->hal.startup_led = wt_rx14xx_led1_init(&self->startup_led, error);
+    self->hal.activity_led = wt_rx14xx_led2_init(&self->activity_led, error);
+    self->hal.xpc_reset = wt_rx1400_xpc_reset_init(&self->xpc_reset, error);
     self->hal.timer5 = wt_rx14xx_timer5_init(&self->timer5, wt_rx14xx_timer_prescale_1, error);
     self->hal.counter = wthal_counter_init(&self->counter, error);
     self->hal.debug_uart = wt_rx14xx_debug_uart_init(&self->debug_uart, 230400, true, wthal_isr_priority_4, wthal_isr_priority_4, wthal_isr_priority_4, error);
     
-    wthal_gpio_weak_pull_up(self->hal.xpc_reset, true);
+    wthal_gpio_weak_pull_up(self->hal.xpc_reset, true, error);
     
     wthal_isr_add_observer(self->hal.t5_isr, wthal_counter_isr, self->hal.counter, error);
     wthal_isr_enable(self->hal.t5_isr, true, error);
@@ -760,26 +765,27 @@ wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self, wt_error_t * co
 int app_main(wthal_t * const hal, wt_error_t * const error) {
 
     uint32_t count = 0;
-
-    wthal_counter_reset(hal->counter, error);
-    wthal_gpio_set(hal->startup_led, true);
-    while (wthal_counter_get(hal->counter, error) < 3000) {
+    bool ok = true;
+    
+    ok = !ok ? ok : wthal_counter_reset(hal->counter, error);
+    ok = !ok ? ok : wthal_gpio_set(hal->startup_led, true, error);
+    while (ok && wthal_counter_get(hal->counter, error) < 3000) {
         ClrWdt();
         Nop();
     }
-    wthal_gpio_set(hal->startup_led, false);
+    ok = !ok ? ok : wthal_gpio_set(hal->startup_led, false, error);
     
-    while (1)
+    while (ok)
     {
         // Add your application code
-        wthal_gpio_set(hal->activity_led, true);
-        wthal_counter_reset(hal->counter, error);
+        ok = !ok ? ok : wthal_gpio_set(hal->activity_led, true, error);
+        ok = !ok ? ok : wthal_counter_reset(hal->counter, error);
         while(wthal_counter_get(hal->counter, error) < 1000) {
             ClrWdt();
             Nop();
         }
-        wthal_gpio_set(hal->activity_led, false);
-        wthal_counter_reset(hal->counter, error);
+        ok = !ok ? ok : wthal_gpio_set(hal->activity_led, false, error);
+        ok = !ok ? ok : wthal_counter_reset(hal->counter, error);
         while(wthal_counter_get(hal->counter, error) < 1000) {
             ClrWdt();
             Nop();
