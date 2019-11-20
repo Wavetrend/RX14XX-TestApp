@@ -758,24 +758,26 @@ typedef struct {
 
 wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self, wt_error_t * const error) {
     
-    self->hal.t5_isr = wt_rx14xx_tmr5_init(&self->t5_isr, wthal_isr_priority_4, self->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE, error);
-    self->hal.startup_led = wt_rx14xx_led1_init(&self->startup_led, error);
-    self->hal.activity_led = wt_rx14xx_led2_init(&self->activity_led, error);
-    self->hal.xpc_reset = wt_rx1400_xpc_reset_init(&self->xpc_reset, error);
-    self->hal.timer5 = wt_rx14xx_timer5_init(&self->timer5, wt_rx14xx_timer_prescale_1, error);
-    self->hal.counter = wthal_counter_init(&self->counter, error);
-    self->hal.debug_uart = wt_rx14xx_debug_uart_init(&self->debug_uart, 230400, true, wthal_isr_priority_4, wthal_isr_priority_4, wthal_isr_priority_4, error);
+    bool ok = true;
     
-    wthal_gpio_weak_pull_up(self->hal.xpc_reset, true, error);
+    ok = !ok ? ok : (self->hal.t5_isr = wt_rx14xx_tmr5_init(&self->t5_isr, wthal_isr_priority_4, self->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE, error)) != NULL;
+    ok = !ok ? ok : (self->hal.startup_led = wt_rx14xx_led1_init(&self->startup_led, error)) != NULL;
+    ok = !ok ? ok : (self->hal.activity_led = wt_rx14xx_led2_init(&self->activity_led, error)) != NULL;
+    ok = !ok ? ok : (self->hal.xpc_reset = wt_rx1400_xpc_reset_init(&self->xpc_reset, error)) != NULL;
+    ok = !ok ? ok : (self->hal.timer5 = wt_rx14xx_timer5_init(&self->timer5, wt_rx14xx_timer_prescale_1, error)) != NULL;
+    ok = !ok ? ok : (self->hal.counter = wthal_counter_init(&self->counter, error)) != NULL;
+    ok = !ok ? ok : (self->hal.debug_uart = wt_rx14xx_debug_uart_init(&self->debug_uart, 230400, true, wthal_isr_priority_4, wthal_isr_priority_4, wthal_isr_priority_4, error)) != NULL;
     
-    wthal_isr_add_observer(self->hal.t5_isr, wthal_counter_isr, self->hal.counter, error);
-    wthal_isr_enable(self->hal.t5_isr, true, error);
-    wthal_timer_start(self->hal.timer5, 1, error);
+    ok = !ok ? ok : wthal_gpio_weak_pull_up(self->hal.xpc_reset, true, error);
     
-    wthal_uart_open(self->hal.debug_uart, error);
-    wthal_set_stdout(self->hal.debug_uart, error);
+    ok = !ok ? ok : wthal_isr_add_observer(self->hal.t5_isr, wthal_counter_isr, self->hal.counter, error);
+    ok = !ok ? ok : wthal_isr_enable(self->hal.t5_isr, true, error);
+    ok = !ok ? ok : wthal_timer_start(self->hal.timer5, 1, error);
     
-    return &self->hal;
+    ok = !ok ? ok : wthal_uart_open(self->hal.debug_uart, error);
+    ok = !ok ? ok : wthal_set_stdout(self->hal.debug_uart, error);
+    
+    return ok ? &self->hal : NULL;
     
 }
 
@@ -833,7 +835,11 @@ int main(void)
     wt_rx1400_hal_t rx1400_hal;
     wthal_t * hal = wt_rx1400_hal_init(&rx1400_hal, &error);
  
-    return app_main(hal, &error);
+    if (hal != NULL) { 
+        return app_main(hal, &error);
+    }
+    
+    return -1;
 
 }
 /**
