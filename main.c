@@ -685,7 +685,7 @@ int __attribute__ ( ( __section__(".libc.write" ) ) ) write(int handle, void * b
     return 0;
 }
 
-bool wthal_set_stdout(wthal_uart_t * const uart) {
+bool wthal_set_stdout(wthal_uart_t * const uart, wt_error_t * const error) {
     wthal_stdout_uart = uart;
     return true;
 }
@@ -751,7 +751,7 @@ wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self, wt_error_t * co
     wthal_timer_start(self->hal.timer5, 1, error);
     
     wthal_uart_open(self->hal.debug_uart, error);
-    wthal_set_stdout(self->hal.debug_uart);
+    wthal_set_stdout(self->hal.debug_uart, error);
     
     return &self->hal;
     
