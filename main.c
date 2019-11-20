@@ -54,6 +54,8 @@
 #include "utlist.h"
 
 #include "wtapi_circular_buffer.h"
+#include "wt_assert.h"
+#include "wt_error.h"
 
 /*
                          Main application
@@ -66,8 +68,8 @@ WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 
 typedef struct {
     
-    bool (*start)(void * const context, uint32_t const msecs);
-    bool (*stop)(void * const context);
+    bool (*start)(void * const context, uint32_t const msecs, wt_error_t * const error);
+    bool (*stop)(void * const context, wt_error_t * const error);
     
 } wthal_timer_impl_t;
 
@@ -78,18 +80,33 @@ typedef struct {
     
 } wthal_timer_t;
 
-wthal_timer_t * const wthal_timer_init(wthal_timer_t * const self, wthal_timer_impl_t * const impl, void * const context) {
-    self->impl = impl;
-    self->context = context;
-    return self;
+wthal_timer_t * const wthal_timer_init(wthal_timer_t * const self, wthal_timer_impl_t * const impl, void * const context, wt_error_t * const error) {
+    bool ok = true;
+    ok = !ok ? ok : wt_assert_ptr(self, error);
+    ok = !ok ? ok : wt_assert_ptr(impl, error);
+    
+    if (ok) {
+        self->impl = impl;
+        self->context = context;
+    }
+    
+    return ok ? self : NULL;
 }
 
-bool wthal_timer_start(wthal_timer_t * const self, uint32_t const msecs) {
-    return self->impl->start(self->context, msecs);
+bool wthal_timer_start(wthal_timer_t * const self, uint32_t const msecs, wt_error_t * const error) {
+    bool ok = true;
+    ok = !ok ? ok : wt_assert_ptr(self, error);
+    ok = !ok ? ok : wt_assert_ptr(self->impl->start, error);
+    
+    return !ok ? ok : self->impl->start(self->context, msecs, error);
 }
 
-bool wthal_timer_stop(wthal_timer_t * const self) {
-    return self->impl->stop(self->context);
+bool wthal_timer_stop(wthal_timer_t * const self, wt_error_t * const error) {
+    bool ok = true;
+    ok = !ok ? ok : wt_assert_ptr(self, error);
+    ok = !ok ? ok : wt_assert_ptr(self->impl->start, error);
+
+    return !ok ? ok : self->impl->stop(self->context, error);
 }
 
 //---------------------------------
@@ -106,7 +123,7 @@ typedef enum {
     typedef struct { \
         wthal_timer_t timer; \
     } NAME ## _t; \
-    static bool start_impl(void * const context, uint32_t const msecs) { \
+    static bool start_impl(void * const context, uint32_t const msecs, wt_error_t * const error) { \
         float prescale[4] = { 1, 8, 64, 256 }; \
         bool ok = false; \
         TON = 0; \
@@ -122,9 +139,10 @@ typedef enum {
                 break; \
             } \
         } \
+        ok = wt_assert(ok, WT_ERROR_EINVAL, error); \
         return ok; \
     } \
-    static bool stop_impl(void * const context) { \
+    static bool stop_impl(void * const context, wt_error_t * const error) { \
         TON = 0; \
         return true; \
     } \
@@ -132,11 +150,11 @@ typedef enum {
         .start = start_impl, \
         .stop = stop_impl, \
     }; \
-    wthal_timer_t * const NAME ## _init(NAME ## _t * const self, wt_rx14xx_timer_prescale_t const prescale) { \
+    wthal_timer_t * const NAME ## _init(NAME ## _t * const self, wt_rx14xx_timer_prescale_t const prescale, wt_error_t * const error) { \
         TON = 0; \
         TIMER = 0; \
         TCKPS = prescale; \
-        return wthal_timer_init(&self->timer, &NAME ## _impl, self); \
+        return wthal_timer_init(&self->timer, &NAME ## _impl, self, error); \
     }
 
 //-------------------------
@@ -694,13 +712,13 @@ typedef struct {
     
 } wt_rx1400_hal_t;
 
-wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self) {
+wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self, wt_error_t * const error) {
     
     self->hal.t5_isr = wt_rx14xx_tmr5_init(&self->t5_isr, wthal_isr_priority_4, self->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE);
     self->hal.startup_led = wt_rx14xx_led1_init(&self->startup_led);
     self->hal.activity_led = wt_rx14xx_led2_init(&self->activity_led);
     self->hal.xpc_reset = wt_rx1400_xpc_reset_init(&self->xpc_reset);
-    self->hal.timer5 = wt_rx14xx_timer5_init(&self->timer5, wt_rx14xx_timer_prescale_1);
+    self->hal.timer5 = wt_rx14xx_timer5_init(&self->timer5, wt_rx14xx_timer_prescale_1, error);
     self->hal.counter = wthal_counter_init(&self->counter);
     self->hal.debug_uart = wt_rx14xx_debug_uart_init(&self->debug_uart, 230400, true, wthal_isr_priority_4, wthal_isr_priority_4, wthal_isr_priority_4);
     
@@ -708,7 +726,7 @@ wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self) {
     
     wthal_isr_add_observer(self->hal.t5_isr, wthal_counter_isr, self->hal.counter);
     wthal_isr_enable(self->hal.t5_isr, true);
-    wthal_timer_start(self->hal.timer5, 1);
+    wthal_timer_start(self->hal.timer5, 1, error);
     
     wthal_uart_open(self->hal.debug_uart);
     wthal_set_stdout(self->hal.debug_uart);
@@ -755,6 +773,8 @@ int app_main(wthal_t * const hal) {
 
 int main(void)
 {
+    wt_error_t error;
+    
     // initialize the device - MUST COME FIRST OR WILL OVERRIDE HAL STYLE CONFIG
     SYSTEM_Initialize();
 
@@ -766,7 +786,7 @@ int main(void)
     PPS_LOCK();
     
     wt_rx1400_hal_t rx1400_hal;
-    wthal_t * hal = wt_rx1400_hal_init(&rx1400_hal);
+    wthal_t * hal = wt_rx1400_hal_init(&rx1400_hal, &error);
  
     return app_main(hal);
 
