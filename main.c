@@ -192,18 +192,20 @@ uint32_t wthal_counter_get(wthal_counter_t * const self, wt_error_t * const erro
     return ok ? self->count : 0;
 }
 
-void wthal_counter_isr(void * const context) {
+void wthal_counter_isr(void * const context, wt_error_t * const error) {
     wthal_counter_t * const counter = context;
-    wthal_counter_increment(counter, NULL);
+    wthal_counter_increment(counter, error);
 }
 
 //-----------------------------------
 
 typedef struct wthal_observer_tag wthal_observer_t;
+typedef void (*wthal_observer_callback_t)(void * const context, wt_error_t * const error);
 
 struct wthal_observer_tag {
-    void (*callback)(void * const context);
+    wthal_observer_callback_t callback;
     void * context;
+    wt_error_t * error;
     wthal_observer_t * volatile next;
     wthal_observer_t * volatile prev;
 };
@@ -215,7 +217,7 @@ typedef struct {
 void wthal_observers_dispatch(wthal_observers_t * const self) {
     wthal_observer_t * el, * tmp;
     DL_FOREACH_SAFE(self->head, el, tmp) {
-        el->callback(el->context);
+        el->callback(el->context, el->error);
     }
 }
 
@@ -235,12 +237,12 @@ bool wthal_observers_delete(wthal_observers_t * const self, wthal_observer_t * c
 
 typedef struct {
     
-    bool (*enable)(void * const context, bool const enable);
-    bool (*set_flag)(void * const context, bool const set);
-    bool (*get_flag)(void * const context);
-    bool (*set_priority)(void * const context, uint8_t const priority);
-    uint8_t (*get_priority)(void * const context);
-    bool (*add_observer)(void * const context, void (*callback)(void * const context), void * const callback_context);
+    bool (*enable)(void * const context, bool const enable, wt_error_t * const error);
+    bool (*set_flag)(void * const context, bool const set, wt_error_t * const error);
+    bool (*get_flag)(void * const context, wt_error_t * const error);
+    bool (*set_priority)(void * const context, uint8_t const priority, wt_error_t * const error);
+    uint8_t (*get_priority)(void * const context, wt_error_t * const error);
+    bool (*add_observer)(void * const context, wthal_observer_callback_t callback, void * const callback_context, wt_error_t * const error);
     
 } wthal_isr_impl_t;
 
@@ -261,34 +263,38 @@ typedef enum {
     wthal_isr_priority_7 = 7,
 } wthal_isr_priority_t;
 
-wthal_isr_t * const wthal_isr_init(wthal_isr_t * const self, wthal_isr_impl_t * const impl, void * const context) {
-    self->impl = impl;
-    self->context = context;
-    return self;
+wthal_isr_t * const wthal_isr_init(wthal_isr_t * const self, wthal_isr_impl_t * const impl, void * const context, wt_error_t * const error) {
+    bool ok = true;
+    ok = !ok ? ok : wt_assert_ptr(self, error);
+    if (ok) {
+        self->impl = impl;
+        self->context = context;
+    }
+    return ok ? self : NULL;
 }
 
-bool wthal_isr_enable(wthal_isr_t * const self, bool const enable) {
-    return self->impl->enable(self->context, enable);
+bool wthal_isr_enable(wthal_isr_t * const self, bool const enable, wt_error_t * const error) {
+    return self->impl->enable(self->context, enable, error);
 }
 
-bool wthal_isr_set_flag(wthal_isr_t * const self, bool const set) {
-    return self->impl->set_flag(self->context, set);
+bool wthal_isr_set_flag(wthal_isr_t * const self, bool const set, wt_error_t * const error) {
+    return self->impl->set_flag(self->context, set, error);
 }
 
-bool wthal_isr_get_flag(wthal_isr_t * const self) {
-    return self->impl->get_flag(self->context);
+bool wthal_isr_get_flag(wthal_isr_t * const self, wt_error_t * const error) {
+    return self->impl->get_flag(self->context, error);
 }
 
-bool wthal_isr_set_priority(wthal_isr_t * const self, uint8_t const priority) {
-    return self->impl->set_priority(self->context, priority);
+bool wthal_isr_set_priority(wthal_isr_t * const self, uint8_t const priority, wt_error_t * const error) {
+    return self->impl->set_priority(self->context, priority, error);
 }
 
-bool wthal_isr_get_priority(wthal_isr_t * const self) {
-    return self->impl->get_priority(self->context);
+bool wthal_isr_get_priority(wthal_isr_t * const self, wt_error_t * const error) {
+    return self->impl->get_priority(self->context, error);
 }
 
-bool wthal_isr_add_observer(wthal_isr_t * const self, void (*callback)(void * const context), void * const context) {
-    return self->impl->add_observer(self->context, callback, context);
+bool wthal_isr_add_observer(wthal_isr_t * const self, wthal_observer_callback_t callback, void * const context, wt_error_t * const error) {
+    return self->impl->add_observer(self->context, callback, context, error);
 }
 
 #define DEFINE_ISR(NAME, ISR, IF, IE, IP) \
@@ -301,34 +307,34 @@ bool wthal_isr_add_observer(wthal_isr_t * const self, void (*callback)(void * co
         wthal_observers_dispatch(&NAME ## _active); \
         IF = 0; \
     } \
-    static bool NAME ## _enable_impl(void * const context, bool const enable) { \
+    static bool NAME ## _enable_impl(void * const context, bool const enable, wt_error_t * const error) { \
         IE = enable; \
         return true; \
     } \
-    static bool NAME ## _set_flag_impl(void * const context, bool const set) { \
+    static bool NAME ## _set_flag_impl(void * const context, bool const set, wt_error_t * const error) { \
         IF = set; \
         return true; \
     } \
-    static bool NAME ## _get_flag_impl(void * const context) { \
+    static bool NAME ## _get_flag_impl(void * const context, wt_error_t * const error) { \
         return IF; \
     } \
-    static bool NAME ## _set_priority_impl(void * const context, uint8_t const priority) { \
+    static bool NAME ## _set_priority_impl(void * const context, uint8_t const priority, wt_error_t * const error) { \
         IP = priority; \
         return true; \
     } \
-    static uint8_t NAME ## _get_priority_impl(void * const context) { \
+    static uint8_t NAME ## _get_priority_impl(void * const context, wt_error_t * const error) { \
         return IP; \
     } \
-    static bool NAME ## _add_observer_impl(void * const context, void (*callback)(void * const context), void * const callback_context) { \
+    static bool NAME ## _add_observer_impl(void * const context, wthal_observer_callback_t callback, void * const callback_context, wt_error_t * const error) { \
         wthal_observer_t * elem = wthal_observers_head(&NAME ## _inactive); \
         bool ok = true; \
-        if (elem != NULL) { \
+        ok = !ok ? ok : wt_assert(elem != NULL, WT_ERROR_ENOSPC, error); \
+        if (ok) { \
             wthal_observers_delete(&NAME ## _inactive, elem); \
             elem->callback = callback; \
             elem->context = callback_context; \
+            elem->error = error; \
             wthal_observers_add(&NAME ## _active, elem); \
-        } else { \
-            ok = false; \
         } \
         return ok; \
     } \
@@ -340,14 +346,14 @@ bool wthal_isr_add_observer(wthal_isr_t * const self, void (*callback)(void * co
         .set_priority = NAME ## _set_priority_impl, \
         .get_priority = NAME ## _get_priority_impl, \
     }; \
-    wthal_isr_t * const NAME ## _init(NAME ## _t * const self, wthal_isr_priority_t const interrupt_priority, wthal_observer_t * const observers, size_t const size) { \
+    wthal_isr_t * const NAME ## _init(NAME ## _t * const self, wthal_isr_priority_t const interrupt_priority, wthal_observer_t * const observers, size_t const size, wt_error_t * const error) { \
         IE = 0; \
         IF = 0; \
         IP = interrupt_priority; \
         for (size_t i=0 ; i < size ; i++) { \
             wthal_observers_add(&NAME ## _inactive, &observers[i]); \
         } \
-        return wthal_isr_init(&self->isr, &NAME ## _impl, self); \
+        return wthal_isr_init(&self->isr, &NAME ## _impl, self, error); \
     }
 
 ///////////////////////////////// GPIO ///////////////////////////////////////
@@ -472,12 +478,12 @@ bool wthal_gpio_output_drain(wthal_gpio_t * const self, bool const enable) {
 
 typedef struct {
     
-    bool (*open)(void * const context);
-    bool (*close)(void * const context);
-    bool (*baudrate)(void * const context, uint32_t const baudrate);
-    bool (*flowcontrol)(void * const context, bool const flowcontrol);
-    size_t (*read)(void * const context, void * const data, size_t const size);
-    size_t (*write)(void * const context, void const * const data, size_t const size);
+    bool (*open)(void * const context, wt_error_t * const error);
+    bool (*close)(void * const context, wt_error_t * const error);
+    bool (*baudrate)(void * const context, uint32_t const baudrate, wt_error_t * const error);
+    bool (*flowcontrol)(void * const context, bool const flowcontrol, wt_error_t * const error);
+    size_t (*read)(void * const context, void * const data, size_t const size, wt_error_t * const error);
+    size_t (*write)(void * const context, void const * const data, size_t const size, wt_error_t * const error);
     
 } wthal_uart_impl_t;
 
@@ -488,34 +494,38 @@ typedef struct {
     
 } wthal_uart_t;
 
-wthal_uart_t * const wthal_uart_init(wthal_uart_t * const self, wthal_uart_impl_t const * const impl, void * const context) {
-    self->impl = impl;
-    self->context = context;
-    return self;
+wthal_uart_t * const wthal_uart_init(wthal_uart_t * const self, wthal_uart_impl_t const * const impl, void * const context, wt_error_t * const error) {
+    bool ok = true;
+    ok = !ok ? ok : wt_assert_ptr(self, error);
+    if (ok) {
+        self->impl = impl;
+        self->context = context;
+    }
+    return ok ? self : NULL;
 }
 
-bool wthal_uart_open(wthal_uart_t * const self) {
-    return self->impl->open(self->context);
+bool wthal_uart_open(wthal_uart_t * const self, wt_error_t * const error) {
+    return self->impl->open(self->context, error);
 }
 
-bool wthal_uart_close(wthal_uart_t * const self) {
-    return self->impl->close(self->context);
+bool wthal_uart_close(wthal_uart_t * const self, wt_error_t * const error) {
+    return self->impl->close(self->context, error);
 }
 
-bool wthal_uart_baudrate(wthal_uart_t * const self, uint32_t const baudrate) {
-    return self->impl->baudrate(self->context, baudrate);
+bool wthal_uart_baudrate(wthal_uart_t * const self, uint32_t const baudrate, wt_error_t * const error) {
+    return self->impl->baudrate(self->context, baudrate, error);
 }
 
-bool wthal_uart_flowcontrol(wthal_uart_t * const self, bool const flowcontrol) {
-    return self->impl->flowcontrol(self->context, flowcontrol);
+bool wthal_uart_flowcontrol(wthal_uart_t * const self, bool const flowcontrol, wt_error_t * const error) {
+    return self->impl->flowcontrol(self->context, flowcontrol, error);
 }
 
-bool wthal_uart_read(wthal_uart_t * const self, void * const data, size_t const size) {
-    return self->impl->read(self->context, data, size);
+bool wthal_uart_read(wthal_uart_t * const self, void * const data, size_t const size, wt_error_t * const error) {
+    return self->impl->read(self->context, data, size, error);
 }
 
-bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t const size) {
-    return self->impl->write(self->context, data, size);
+bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t const size, wt_error_t * const error) {
+    return self->impl->write(self->context, data, size, error);
 }
 
 #ifndef UART_TESTING
@@ -567,76 +577,77 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
         uint8_t tx_storage[256]; \
         uint8_t rx_storage[256]; \
     } NAME ## _t; \
-    static void NAME ## _tx_isr_impl(void * const context) { \
+    static void NAME ## _tx_isr_impl(void * const context, wt_error_t * const error) { \
         NAME ## _t * const self = context; \
         while (! UART_TXBF(UART)) { \
             uint8_t data; \
-            if (wt_rx14xx_uint8_buffer_read(&self->tx_buffer, &data, sizeof(data), NULL)) { \
+            if (wt_rx14xx_uint8_buffer_read(&self->tx_buffer, &data, sizeof(data), error)) { \
                 UART_TXREG(UART) = data; \
             } else { \
-                wthal_isr_enable(self->tx_isr, false); \
+                wthal_isr_enable(self->tx_isr, false, error); \
                 break; \
             } \
         } \
     } \
-    static void NAME ## _rx_isr_impl(void * const context) { \
+    static void NAME ## _rx_isr_impl(void * const context, wt_error_t * const error) { \
         NAME ## _t * const self = context; \
         bool ok = true; \
         while (ok && UART_RXDA(UART)) { \
             uint8_t data = UART_RXREG(UART); \
-            ok = !ok ? ok : wt_rx14xx_uint8_buffer_write(&self->rx_buffer, &data, sizeof(data), NULL); \
+            ok = !ok ? ok : wt_rx14xx_uint8_buffer_write(&self->rx_buffer, &data, sizeof(data), error); \
         } \
     } \
-    static void NAME ## _err_isr_impl(void * const context) { \
+    static void NAME ## _err_isr_impl(void * const context, wt_error_t * const error) { \
         if (UART_OERR(UART) == 1) { \
             UART_OERR(UART) = 0; \
         } \
     } \
-    static bool NAME ## _open_impl(void * const context) { \
+    static bool NAME ## _open_impl(void * const context, wt_error_t * const error) { \
         NAME ## _t * const self = context; \
         UART_MODE(UART) = 0x0000; \
         UART_BRGH(UART) = 1; \
         UART_STA(UART) = 0x0000; \
-        wthal_uart_baudrate(&self->uart, self->baudrate); \
-        wthal_uart_flowcontrol(&self->uart, self->flowcontrol); \
-        wthal_isr_enable(self->tx_isr, false); \
-        wthal_isr_enable(self->rx_isr, true); \
-        wthal_isr_enable(self->err_isr, true); \
+        wthal_uart_baudrate(&self->uart, self->baudrate, error); \
+        wthal_uart_flowcontrol(&self->uart, self->flowcontrol, error); \
+        wthal_isr_enable(self->tx_isr, false, error); \
+        wthal_isr_enable(self->rx_isr, true, error); \
+        wthal_isr_enable(self->err_isr, true, error); \
         UART_UARTEN(UART) = 1; \
         UART_TXEN(UART) = 1; \
         return true; \
     } \
-    static bool NAME ## _close_impl(void * const context) { \
+    static bool NAME ## _close_impl(void * const context, wt_error_t * const error) { \
         NAME ## _t * const self = context; \
-        wthal_isr_enable(self->tx_isr, false); \
-        wthal_isr_enable(self->rx_isr, false); \
-        wthal_isr_enable(self->err_isr, false); \
+        wthal_isr_enable(self->tx_isr, false, error); \
+        wthal_isr_enable(self->rx_isr, false, error); \
+        wthal_isr_enable(self->err_isr, false, error); \
         UART_UARTEN(UART) = 0; \
         UART_TXEN(UART) = 0; \
         return true; \
     } \
-    static bool NAME ## _baudrate_impl(void * const context, uint32_t const baudrate) { \
+    static bool NAME ## _baudrate_impl(void * const context, uint32_t const baudrate, wt_error_t * const error) { \
         NAME ## _t * const self = context; \
         self->baudrate = baudrate; \
         UART_BRG(UART) = (XTAL / (4 * self->baudrate)) - 1; \
         return true; \
     } \
-    static bool NAME ## _flowcontrol_impl(void * const context, bool const flowcontrol) { \
+    static bool NAME ## _flowcontrol_impl(void * const context, bool const flowcontrol, wt_error_t * const error) { \
         NAME ## _t * const self = context; \
         self->flowcontrol = flowcontrol; \
         UART_EN(UART) = self->flowcontrol ? 2 : 0; \
         return true; \
     } \
-    static size_t NAME ## _read_impl(void * const context, void * const data, size_t const size) { \
+    static size_t NAME ## _read_impl(void * const context, void * const data, size_t const size, wt_error_t * const error) { \
         NAME ## _t * const self = context; \
-        return wt_rx14xx_uint8_buffer_read(&self->rx_buffer, data, size, NULL); \
+        return wt_rx14xx_uint8_buffer_read(&self->rx_buffer, data, size, error); \
     } \
-    static size_t NAME ## _write_impl(void * const context, void const * const data, size_t const size) { \
+    static size_t NAME ## _write_impl(void * const context, void const * const data, size_t const size, wt_error_t * const error) { \
         NAME ## _t * const self = context; \
-        size_t written = wt_rx14xx_uint8_buffer_write(&self->tx_buffer, data, size, NULL); \
+        bool ok = true; \
+        size_t written = wt_rx14xx_uint8_buffer_write(&self->tx_buffer, data, size, error); \
         if (written > 0) { \
-            wthal_isr_set_flag(self->tx_isr, true); \
-            wthal_isr_enable(self->tx_isr, true); \
+            ok = !ok ? ok : wthal_isr_set_flag(self->tx_isr, true, error); \
+            ok = !ok ? ok : wthal_isr_enable(self->tx_isr, true, error); \
         } \
         return written; \
     } \
@@ -648,18 +659,19 @@ bool wthal_uart_write(wthal_uart_t * const self, void const * const data, size_t
         .read = NAME ## _read_impl, \
         .write = NAME ## _write_impl, \
     }; \
-    wthal_uart_t * const NAME ## _init(NAME ## _t * const self, uint32_t const baudrate, bool const flowcontrol, wthal_isr_priority_t const tx_priority, wthal_isr_priority_t const rx_priority, wthal_isr_priority_t const err_priority) { \
+    wthal_uart_t * const NAME ## _init(NAME ## _t * const self, uint32_t const baudrate, bool const flowcontrol, wthal_isr_priority_t const tx_priority, wthal_isr_priority_t const rx_priority, wthal_isr_priority_t const err_priority, wt_error_t * const error) { \
+        bool ok = true; \
         self->baudrate = baudrate; \
         self->flowcontrol = flowcontrol; \
-        self->tx_isr = NAME ## _tx_init(&self->_tx_isr, tx_priority, self->tx_observers, 1); \
-        self->rx_isr = NAME ## _rx_init(&self->_rx_isr, rx_priority, self->rx_observers, 1); \
-        self->err_isr = NAME ## _err_init(&self->_err_isr, err_priority, self->err_observers, 1); \
-        wthal_isr_add_observer(self->tx_isr, NAME ## _tx_isr_impl, self); \
-        wthal_isr_add_observer(self->rx_isr, NAME ## _rx_isr_impl, self); \
-        wthal_isr_add_observer(self->err_isr, NAME ## _err_isr_impl, self); \
-        wt_rx14xx_uint8_buffer_init(&self->tx_buffer, self->tx_storage, 256, NULL); \
-        wt_rx14xx_uint8_buffer_init(&self->rx_buffer, self->rx_storage, 256, NULL); \
-        return wthal_uart_init(&self->uart, &NAME ## _impl, self); \
+        ok = !ok ? ok : (self->tx_isr = NAME ## _tx_init(&self->_tx_isr, tx_priority, self->tx_observers, 1, error)) != NULL; \
+        ok = !ok ? ok : (self->rx_isr = NAME ## _rx_init(&self->_rx_isr, rx_priority, self->rx_observers, 1, error)) != NULL; \
+        ok = !ok ? ok : (self->err_isr = NAME ## _err_init(&self->_err_isr, err_priority, self->err_observers, 1, error)) != NULL; \
+        ok = !ok ? ok : wthal_isr_add_observer(self->tx_isr, NAME ## _tx_isr_impl, self, error); \
+        ok = !ok ? ok : wthal_isr_add_observer(self->rx_isr, NAME ## _rx_isr_impl, self, error); \
+        ok = !ok ? ok : wthal_isr_add_observer(self->err_isr, NAME ## _err_isr_impl, self, error); \
+        ok = !ok ? ok : wt_rx14xx_uint8_buffer_init(&self->tx_buffer, self->tx_storage, 256, error); \
+        ok = !ok ? ok : wt_rx14xx_uint8_buffer_init(&self->rx_buffer, self->rx_storage, 256, error); \
+        return ok ? wthal_uart_init(&self->uart, &NAME ## _impl, self, error) : NULL; \
     }
 
 //////////////////////////////// STDOUT ///////////////////////////////////////
@@ -668,7 +680,7 @@ static wthal_uart_t * wthal_stdout_uart = NULL;
 
 int __attribute__ ( ( __section__(".libc.write" ) ) ) write(int handle, void * buffer, unsigned int len) {
     if (wthal_stdout_uart != NULL) {
-        return (int) wthal_uart_write(wthal_stdout_uart, buffer, len);
+        return (int) wthal_uart_write(wthal_stdout_uart, buffer, len, NULL);
     }
     return 0;
 }
@@ -724,21 +736,21 @@ typedef struct {
 
 wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self, wt_error_t * const error) {
     
-    self->hal.t5_isr = wt_rx14xx_tmr5_init(&self->t5_isr, wthal_isr_priority_4, self->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE);
+    self->hal.t5_isr = wt_rx14xx_tmr5_init(&self->t5_isr, wthal_isr_priority_4, self->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE, error);
     self->hal.startup_led = wt_rx14xx_led1_init(&self->startup_led);
     self->hal.activity_led = wt_rx14xx_led2_init(&self->activity_led);
     self->hal.xpc_reset = wt_rx1400_xpc_reset_init(&self->xpc_reset);
     self->hal.timer5 = wt_rx14xx_timer5_init(&self->timer5, wt_rx14xx_timer_prescale_1, error);
     self->hal.counter = wthal_counter_init(&self->counter, error);
-    self->hal.debug_uart = wt_rx14xx_debug_uart_init(&self->debug_uart, 230400, true, wthal_isr_priority_4, wthal_isr_priority_4, wthal_isr_priority_4);
+    self->hal.debug_uart = wt_rx14xx_debug_uart_init(&self->debug_uart, 230400, true, wthal_isr_priority_4, wthal_isr_priority_4, wthal_isr_priority_4, error);
     
     wthal_gpio_weak_pull_up(self->hal.xpc_reset, true);
     
-    wthal_isr_add_observer(self->hal.t5_isr, wthal_counter_isr, self->hal.counter);
-    wthal_isr_enable(self->hal.t5_isr, true);
+    wthal_isr_add_observer(self->hal.t5_isr, wthal_counter_isr, self->hal.counter, error);
+    wthal_isr_enable(self->hal.t5_isr, true, error);
     wthal_timer_start(self->hal.timer5, 1, error);
     
-    wthal_uart_open(self->hal.debug_uart);
+    wthal_uart_open(self->hal.debug_uart, error);
     wthal_set_stdout(self->hal.debug_uart);
     
     return &self->hal;
