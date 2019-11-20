@@ -163,28 +163,38 @@ typedef struct {
     uint32_t volatile count;
 } wthal_counter_t;
 
-wthal_counter_t * const wthal_counter_init(wthal_counter_t * const self) {
+wthal_counter_t * const wthal_counter_init(wthal_counter_t * const self, wt_error_t * const error) {
     self->count = 0;
     return self;
 }
 
-bool wthal_counter_reset(wthal_counter_t * const self) {
-    self->count = 0;
-    return true;
+bool wthal_counter_reset(wthal_counter_t * const self, wt_error_t * const error) {
+    bool ok = true;
+    ok = !ok ? ok : wt_assert_ptr(self, error);
+    if (ok) {
+        self->count = 0;
+    }
+    return ok;
 }
 
-bool wthal_counter_increment(wthal_counter_t * const self) {
-    self->count++;
-    return true;
+bool wthal_counter_increment(wthal_counter_t * const self, wt_error_t * const error) {
+    bool ok = true;
+    ok = !ok ? ok : wt_assert_ptr(self, error);
+    if (ok) {
+        self->count++;
+    }
+    return ok;
 }
 
-uint32_t wthal_counter_get(wthal_counter_t * const self) {
-    return self->count;
+uint32_t wthal_counter_get(wthal_counter_t * const self, wt_error_t * const error) {
+    bool ok = true;
+    ok = !ok ? ok : wt_assert_ptr(self, error);
+    return ok ? self->count : 0;
 }
 
 void wthal_counter_isr(void * const context) {
     wthal_counter_t * const counter = context;
-    wthal_counter_increment(counter);
+    wthal_counter_increment(counter, NULL);
 }
 
 //-----------------------------------
@@ -719,7 +729,7 @@ wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self, wt_error_t * co
     self->hal.activity_led = wt_rx14xx_led2_init(&self->activity_led);
     self->hal.xpc_reset = wt_rx1400_xpc_reset_init(&self->xpc_reset);
     self->hal.timer5 = wt_rx14xx_timer5_init(&self->timer5, wt_rx14xx_timer_prescale_1, error);
-    self->hal.counter = wthal_counter_init(&self->counter);
+    self->hal.counter = wthal_counter_init(&self->counter, error);
     self->hal.debug_uart = wt_rx14xx_debug_uart_init(&self->debug_uart, 230400, true, wthal_isr_priority_4, wthal_isr_priority_4, wthal_isr_priority_4);
     
     wthal_gpio_weak_pull_up(self->hal.xpc_reset, true);
@@ -735,13 +745,13 @@ wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const self, wt_error_t * co
     
 }
 
-int app_main(wthal_t * const hal) {
+int app_main(wthal_t * const hal, wt_error_t * const error) {
 
     uint32_t count = 0;
 
-    wthal_counter_reset(hal->counter);
+    wthal_counter_reset(hal->counter, error);
     wthal_gpio_set(hal->startup_led, true);
-    while (wthal_counter_get(hal->counter) < 3000) {
+    while (wthal_counter_get(hal->counter, error) < 3000) {
         ClrWdt();
         Nop();
     }
@@ -751,14 +761,14 @@ int app_main(wthal_t * const hal) {
     {
         // Add your application code
         wthal_gpio_set(hal->activity_led, true);
-        wthal_counter_reset(hal->counter);
-        while(wthal_counter_get(hal->counter) < 1000) {
+        wthal_counter_reset(hal->counter, error);
+        while(wthal_counter_get(hal->counter, error) < 1000) {
             ClrWdt();
             Nop();
         }
         wthal_gpio_set(hal->activity_led, false);
-        wthal_counter_reset(hal->counter);
-        while(wthal_counter_get(hal->counter) < 1000) {
+        wthal_counter_reset(hal->counter, error);
+        while(wthal_counter_get(hal->counter, error) < 1000) {
             ClrWdt();
             Nop();
         }
@@ -788,7 +798,7 @@ int main(void)
     wt_rx1400_hal_t rx1400_hal;
     wthal_t * hal = wt_rx1400_hal_init(&rx1400_hal, &error);
  
-    return app_main(hal);
+    return app_main(hal, &error);
 
 }
 /**
