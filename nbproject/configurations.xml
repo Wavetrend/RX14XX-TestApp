@@ -14,8 +14,6 @@
         <itemPath>mcc_generated_files/mcc.h</itemPath>
         <itemPath>mcc_generated_files/system.h</itemPath>
         <itemPath>mcc_generated_files/tmr5.h</itemPath>
-        <itemPath>mcc_generated_files/uart3.h</itemPath>
-        <itemPath>mcc_generated_files/uart4.h</itemPath>
       </logicalFolder>
       <itemPath>include/utlist.h</itemPath>
     </logicalFolder>
@@ -35,8 +33,6 @@
         <itemPath>mcc_generated_files/interrupt_manager.c</itemPath>
         <itemPath>mcc_generated_files/mcc.c</itemPath>
         <itemPath>mcc_generated_files/pin_manager.c</itemPath>
-        <itemPath>mcc_generated_files/uart3.c</itemPath>
-        <itemPath>mcc_generated_files/uart4.c</itemPath>
       </logicalFolder>
       <itemPath>main.c</itemPath>
       <itemPath>src/timer_experiment.c</itemPath>
@@ -284,7 +280,6 @@
         <property key="UART 4" value="true"/>
         <property key="UCNFG1" value="true"/>
         <property key="debugoptions.useswbreakpoints" value="false"/>
-        <property key="firmware.download.all" value="false"/>
         <property key="hwtoolclock.frcindebug" value="false"/>
         <property key="memories.aux" value="false"/>
         <property key="memories.bootflash" value="true"/>
@@ -420,34 +415,6 @@
         </C30Global>
       </item>
       <item path="mcc_generated_files/traps.h" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-CO>
-        </C30-CO>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="mcc_generated_files/uart3.h" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-CO>
-        </C30-CO>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="mcc_generated_files/uart4.h" ex="true" overriding="false">
         <C30>
         </C30>
         <C30-AR>

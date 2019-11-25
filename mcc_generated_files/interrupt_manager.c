@@ -52,23 +52,5 @@
 */
 void INTERRUPT_Initialize (void)
 {
-    //    UERI: U3E - UART3 Error
-    //    Priority: 1
-        IPC20bits.U3ERIP = 1;
-    //    UTXI: U3TX - UART3 Transmitter
-    //    Priority: 1
-        IPC20bits.U3TXIP = 1;
-    //    URXI: U3RX - UART3 Receiver
-    //    Priority: 1
-        IPC20bits.U3RXIP = 1;
-    //    UERI: U4E - UART4 Error
-    //    Priority: 1
-        IPC21bits.U4ERIP = 1;
-    //    UTXI: U4TX - UART4 Transmitter
-    //    Priority: 1
-        IPC22bits.U4TXIP = 1;
-    //    URXI: U4RX - UART4 Receiver
-    //    Priority: 1
-        IPC22bits.U4RXIP = 1;
 
 }
