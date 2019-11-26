@@ -57,6 +57,8 @@
 #include "wt_assert.h"
 #include "wt_error.h"
 
+#include "wthal_timer_pic24.h"
+
 /*
                          Main application
  */
@@ -64,103 +66,7 @@
 WTAPI_DECLARE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 
-////////////////////////////////// TMR ///////////////////////////////////////
-
-typedef struct {
-    
-    bool (*start)(void * const context, uint32_t const msecs, wt_error_t * const error);
-    bool (*stop)(void * const context, wt_error_t * const error);
-    
-} wthal_timer_impl_t;
-
-typedef struct {
-    
-    wthal_timer_impl_t * impl;
-    void * context;
-    
-} wthal_timer_t;
-
-wthal_timer_t * const wthal_timer_init(wthal_timer_t * const instance, wthal_timer_impl_t * const impl, void * const context, wt_error_t * const error) {
-    bool ok = true;
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
-    ok = !ok ? ok : wt_assert_ptr(impl, error);
-    
-    if (ok) {
-        instance->impl = impl;
-        instance->context = context;
-    }
-    
-    return ok ? instance : NULL;
-}
-
-bool wthal_timer_start(wthal_timer_t * const instance, uint32_t const msecs, wt_error_t * const error) {
-    bool ok = true;
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
-    ok = !ok ? ok : wt_assert_ptr(instance->impl->start, error);
-    
-    return !ok ? ok : instance->impl->start(instance->context, msecs, error);
-}
-
-bool wthal_timer_stop(wthal_timer_t * const instance, wt_error_t * const error) {
-    bool ok = true;
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
-    ok = !ok ? ok : wt_assert_ptr(instance->impl->start, error);
-
-    return !ok ? ok : instance->impl->stop(instance->context, error);
-}
-
-//---------------------------------
-// XTAL 14745600
-
-typedef enum { 
-    wt_rx14xx_timer_prescale_1 = 0,
-    wt_rx14xx_timer_prescale_8 = 1,
-    wt_rx14xx_timer_prescale_64 = 2,
-    wt_rx14xx_timer_prescale_256 = 3,
-} wt_rx14xx_timer_prescale_t;
-
-#define WTHAL_TIMER_DECLARE(NAME) \
-    typedef struct { \
-        wthal_timer_t timer; \
-    } NAME ## _t; \
-    wthal_timer_t * const NAME ## _init(NAME ## _t * const instance, wt_rx14xx_timer_prescale_t const prescale, wt_error_t * const error);
-
-#define WTHAL_TIMER_DEFINE(NAME, XTAL, TIMER, PERIOD, TON, TCKPS, IF) \
-    static bool start_impl(void * const context, uint32_t const msecs, wt_error_t * const error) { \
-        float prescale[4] = { 1, 8, 64, 256 }; \
-        bool ok = false; \
-        TON = 0; \
-        for (size_t i=0 ; i < sizeof(prescale) / sizeof(float) ; i++) { \
-            uint32_t period = (((XTAL / 2) / prescale[i]) / 1000) * msecs; \
-            if (period <= UINT16_MAX) { \
-                TCKPS = i; \
-                PERIOD = (uint16_t)period; \
-                TIMER = 0; \
-                IF = 0; \
-                TON = 1; \
-                ok = true; \
-                break; \
-            } \
-        } \
-        ok = wt_assert(ok, WT_ERROR_EINVAL, error); \
-        return ok; \
-    } \
-    static bool stop_impl(void * const context, wt_error_t * const error) { \
-        TON = 0; \
-        return true; \
-    } \
-    static wthal_timer_impl_t NAME ## _impl = { \
-        .start = start_impl, \
-        .stop = stop_impl, \
-    }; \
-    wthal_timer_t * const NAME ## _init(NAME ## _t * const instance, wt_rx14xx_timer_prescale_t const prescale, wt_error_t * const error) { \
-        TON = 0; \
-        TIMER = 0; \
-        TCKPS = prescale; \
-        return wthal_timer_init(&instance->timer, &NAME ## _impl, instance, error); \
-    }
-
-//-------------------------
+//////////////////////////////// COUNTER /////////////////////////////////////
 
 typedef struct {
     uint32_t volatile count;
@@ -729,8 +635,8 @@ WTHAL_GPIO_DECLARE(wt_rx1400_xpc_reset);
 WTHAL_GPIO_DEFINE(wt_rx1400_xpc_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
 WTHAL_ISR_DECLARE(wt_rx14xx_tmr5);
 WTHAL_ISR_DEFINE(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP);
-WTHAL_TIMER_DECLARE(wt_rx14xx_timer5);
-WTHAL_TIMER_DEFINE(wt_rx14xx_timer5, XTAL, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF);
+WTHAL_TIMER_PIC24_DECLARE(wt_rx14xx_timer5);
+WTHAL_TIMER_PIC24_DEFINE(wt_rx14xx_timer5, XTAL, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF);
 
 typedef struct {
     
@@ -791,7 +697,7 @@ wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t 
     ok = !ok ? ok : (instance->hal.startup_led = wt_rx14xx_led1_init(&instance->startup_led, error)) != NULL;
     ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_led2_init(&instance->activity_led, error)) != NULL;
     ok = !ok ? ok : (instance->hal.xpc_reset = wt_rx1400_xpc_reset_init(&instance->xpc_reset, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.timer5 = wt_rx14xx_timer5_init(&instance->timer5, wt_rx14xx_timer_prescale_1, error)) != NULL;
+    ok = !ok ? ok : (instance->hal.timer5 = wt_rx14xx_timer5_init(&instance->timer5, error)) != NULL;
     ok = !ok ? ok : (instance->hal.counter = wthal_counter_init(&instance->counter, error)) != NULL;
     ok = !ok ? ok : (instance->hal.debug_uart = wt_rx14xx_debug_uart_init(&instance->debug_uart, 230400, true, wt_rx1400_isr_priority_debug_uart_tx, wt_rx1400_isr_priority_debug_uart_rx, wt_rx1400_isr_priority_debug_uart_err, error)) != NULL;
     ok = !ok ? ok : (instance->hal.xbee_uart = wt_rx14xx_xbee_uart_init(&instance->xbee_uart, 9600, true, wt_rx1400_isr_priority_xbee_uart_tx, wt_rx1400_isr_priority_xbee_uart_rx, wt_rx1400_isr_priority_xbee_uart_err, error)) != NULL;
