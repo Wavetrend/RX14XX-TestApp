@@ -631,8 +631,8 @@ WTHAL_GPIO_DECLARE(wt_rx14xx_led1);
 WTHAL_GPIO_DEFINE(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7);
 WTHAL_GPIO_DECLARE(wt_rx14xx_led2);
 WTHAL_GPIO_DEFINE(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6);
-WTHAL_GPIO_DECLARE(wt_rx1400_xpc_reset);
-WTHAL_GPIO_DEFINE(wt_rx1400_xpc_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
+WTHAL_GPIO_DECLARE(wt_rx1400_ethernet_reset);
+WTHAL_GPIO_DEFINE(wt_rx1400_ethernet_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
 WTHAL_ISR_DECLARE(wt_rx14xx_tmr5);
 WTHAL_ISR_DEFINE(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP);
 WTHAL_TIMER_PIC24_DECLARE(wt_rx14xx_timer5);
@@ -643,7 +643,7 @@ typedef struct {
     wthal_isr_t * t5_isr;
     wthal_gpio_t * startup_led;
     wthal_gpio_t * activity_led;
-    wthal_gpio_t * xpc_reset;
+    wthal_gpio_t * ethernet_reset;
     wthal_timer_t * timer5;
     wthal_counter_t * counter;
     wthal_uart_t * debug_uart;
@@ -664,7 +664,7 @@ typedef struct {
     wt_rx14xx_tmr5_t t5_isr;
     wt_rx14xx_led1_t startup_led;
     wt_rx14xx_led2_t activity_led;
-    wt_rx1400_xpc_reset_t xpc_reset;
+    wt_rx1400_ethernet_reset_t ethernet_reset;
     wt_rx14xx_timer5_t timer5;
     wthal_counter_t counter;
     wt_rx14xx_debug_uart_t debug_uart;
@@ -696,7 +696,7 @@ wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t 
     ok = !ok ? ok : (instance->hal.t5_isr = wt_rx14xx_tmr5_init(&instance->t5_isr, wt_rx1400_isr_priority_timer, instance->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE, error)) != NULL;
     ok = !ok ? ok : (instance->hal.startup_led = wt_rx14xx_led1_init(&instance->startup_led, error)) != NULL;
     ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_led2_init(&instance->activity_led, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.xpc_reset = wt_rx1400_xpc_reset_init(&instance->xpc_reset, error)) != NULL;
+    ok = !ok ? ok : (instance->hal.ethernet_reset = wt_rx1400_ethernet_reset_init(&instance->ethernet_reset, error)) != NULL;
     ok = !ok ? ok : (instance->hal.timer5 = wt_rx14xx_timer5_init(&instance->timer5, error)) != NULL;
     ok = !ok ? ok : (instance->hal.counter = wthal_counter_init(&instance->counter, error)) != NULL;
     ok = !ok ? ok : (instance->hal.debug_uart = wt_rx14xx_debug_uart_init(&instance->debug_uart, 230400, true, wt_rx1400_isr_priority_debug_uart_tx, wt_rx1400_isr_priority_debug_uart_rx, wt_rx1400_isr_priority_debug_uart_err, error)) != NULL;
@@ -704,7 +704,7 @@ wthal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t 
     ok = !ok ? ok : (instance->hal.primary_ethernet_uart = wt_rx14xx_primary_ethernet_uart_init(&instance->primary_ethernet_uart, 115200, true, wt_rx1400_isr_priority_primary_ethernet_uart_tx, wt_rx1400_isr_priority_primary_ethernet_uart_rx, wt_rx1400_isr_priority_primary_ethernet_uart_err, error)) != NULL;
     ok = !ok ? ok : (instance->hal.secondary_ethernet_uart = wt_rx14xx_secondary_ethernet_uart_init(&instance->secondary_ethernet_uart, 115200, true, wt_rx1400_isr_priority_secondary_ethernet_uart_tx, wt_rx1400_isr_priority_secondary_ethernet_uart_rx, wt_rx1400_isr_priority_secondary_ethernet_uart_err, error)) != NULL;
     
-    ok = !ok ? ok : wthal_gpio_weak_pull_up(instance->hal.xpc_reset, true, error);
+    ok = !ok ? ok : wthal_gpio_weak_pull_up(instance->hal.ethernet_reset, true, error);
     
     ok = !ok ? ok : wthal_isr_add_observer(instance->hal.t5_isr, wthal_counter_isr, instance->hal.counter, error);
     ok = !ok ? ok : wthal_isr_enable(instance->hal.t5_isr, true, error);
