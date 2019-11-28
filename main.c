@@ -586,8 +586,6 @@ int main(void)
     // UART 4 - Secondary Ethernet
     _U4RXR = 25;                // UART4:U4RX->RP25/RD4
     _RP20R = _RPOUT_U4TX;       // RP20/RD5->UART4:U4TX
-//    _U4CTSR = 12;               // UART3:U3CTS->RP12/RD11
-//    _RP3R = _RPOUT_U4RTS;       // RP3/RD10->UART3:U3RTS
 
     PPS_LOCK();
     
