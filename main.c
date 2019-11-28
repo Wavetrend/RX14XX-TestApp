@@ -58,6 +58,7 @@
 #include "wt_error.h"
 
 #include "wthal_timer_pic24.h"
+#include "wthal_counter.h"
 
 /*
                          Main application
@@ -66,47 +67,7 @@
 WTAPI_DECLARE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 
-//////////////////////////////// COUNTER /////////////////////////////////////
-
-typedef struct {
-    uint32_t volatile count;
-} wthal_counter_t;
-
-wthal_counter_t * const wthal_counter_init(wthal_counter_t * const instance, wt_error_t * const error) {
-    instance->count = 0;
-    return instance;
-}
-
-bool wthal_counter_reset(wthal_counter_t * const instance, wt_error_t * const error) {
-    bool ok = true;
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
-    if (ok) {
-        instance->count = 0;
-    }
-    return ok;
-}
-
-bool wthal_counter_increment(wthal_counter_t * const instance, wt_error_t * const error) {
-    bool ok = true;
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
-    if (ok) {
-        instance->count++;
-    }
-    return ok;
-}
-
-uint32_t wthal_counter_get(wthal_counter_t * const instance, wt_error_t * const error) {
-    bool ok = true;
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
-    return ok ? instance->count : 0;
-}
-
-void wthal_counter_isr(void * const context, wt_error_t * const error) {
-    wthal_counter_t * const counter = context;
-    wthal_counter_increment(counter, error);
-}
-
-//-----------------------------------
+//////////////////////////////// OBSERVER /////////////////////////////////////
 
 typedef struct wthal_observer_tag wthal_observer_t;
 typedef void (*wthal_observer_callback_t)(void * const context, wt_error_t * const error);
