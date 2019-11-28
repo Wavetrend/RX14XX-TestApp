@@ -58,7 +58,7 @@
 #include "wthal_timer_pic24.h"
 #include "wthal_counter.h"
 #include "wthal_observers.h"
-#include "wthal_isr.h"
+#include "wthal_isr_pic24.h"
 
 /*
                          Main application
@@ -67,63 +67,6 @@
 WTAPI_DECLARE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 
-
-#define WTHAL_ISR_DECLARE(NAME) \
-    typedef struct { \
-        wthal_isr_t isr; \
-    } NAME ## _t; \
-    wthal_isr_t * const NAME ## _init(NAME ## _t * const instance, wthal_isr_priority_t const interrupt_priority, wthal_observer_t * const observers, size_t const size, wt_error_t * const error);
-
-#define WTHAL_ISR_DEFINE(NAME, ISR, IF, IE, IP) \
-    static wthal_observers_t NAME ## _active = {}; \
-    static wthal_observers_t NAME ## _inactive = {}; \
-    void __attribute__ (( interrupt, no_auto_psv )) ISR ( void ) { \
-        wthal_observers_dispatch(&NAME ## _active); \
-        IF = 0; \
-    } \
-    static bool NAME ## _enable_impl(void * const context, bool const enable, wt_error_t * const error) { \
-        IE = enable; \
-        return true; \
-    } \
-    static bool NAME ## _set_flag_impl(void * const context, bool const set, wt_error_t * const error) { \
-        IF = set; \
-        return true; \
-    } \
-    static bool NAME ## _get_flag_impl(void * const context, wt_error_t * const error) { \
-        return IF; \
-    } \
-    static bool NAME ## _set_priority_impl(void * const context, uint8_t const priority, wt_error_t * const error) { \
-        IP = priority; \
-        return true; \
-    } \
-    static uint8_t NAME ## _get_priority_impl(void * const context, wt_error_t * const error) { \
-        return IP; \
-    } \
-    static bool NAME ## _add_observer_impl(void * const context, wthal_observer_callback_t callback, void * const callback_context, wt_error_t * const error) { \
-        wthal_observer_t * elem = wthal_observers_head(&NAME ## _inactive); \
-        bool ok = true; \
-        ok = !ok ? ok : wt_assert(elem != NULL, WT_ERROR_ENOSPC, error); \
-        ok = !ok ? ok : wthal_observers_delete(&NAME ## _inactive, elem, error); \
-        ok = !ok ? ok : (wthal_observer_init(elem, callback, callback_context, error) != NULL); \
-        ok = !ok ? ok : wthal_observers_add(&NAME ## _active, elem, error); \
-        return ok; \
-    } \
-    static wthal_isr_impl_t NAME ## _impl = { \
-        .enable = NAME ## _enable_impl, \
-        .add_observer = NAME ## _add_observer_impl, \
-        .set_flag = NAME ## _set_flag_impl, \
-        .get_flag = NAME ## _get_flag_impl, \
-        .set_priority = NAME ## _set_priority_impl, \
-        .get_priority = NAME ## _get_priority_impl, \
-    }; \
-    wthal_isr_t * const NAME ## _init(NAME ## _t * const instance, wthal_isr_priority_t const interrupt_priority, wthal_observer_t * const observers, size_t const size, wt_error_t * const error) { \
-        IE = 0; \
-        IF = 0; \
-        IP = interrupt_priority; \
-        wthal_observers_init(&NAME ## _active, NULL, 0, error); \
-        wthal_observers_init(&NAME ## _inactive, observers, size, error); \
-        return wthal_isr_init(&instance->isr, &NAME ## _impl, instance, error); \
-    }
 
 ///////////////////////////////// GPIO ///////////////////////////////////////
 
@@ -329,9 +272,9 @@ bool wthal_uart_write(wthal_uart_t * const instance, void const * const data, si
 #endif /* UART_TESTING */
 
 #define WTHAL_UART_DECLARE(NAME) \
-    WTHAL_ISR_DECLARE(NAME ## _tx) \
-    WTHAL_ISR_DECLARE(NAME ## _rx) \
-    WTHAL_ISR_DECLARE(NAME ## _err) \
+    WTHAL_ISR_PIC24_DECLARE(NAME ## _tx) \
+    WTHAL_ISR_PIC24_DECLARE(NAME ## _rx) \
+    WTHAL_ISR_PIC24_DECLARE(NAME ## _err) \
     typedef struct { \
         uint32_t baudrate; \
         bool flowcontrol; \
@@ -353,9 +296,9 @@ bool wthal_uart_write(wthal_uart_t * const instance, void const * const data, si
     wthal_uart_t * const NAME ## _init(NAME ## _t * const instance, uint32_t const baudrate, bool const flowcontrol, wthal_isr_priority_t const tx_priority, wthal_isr_priority_t const rx_priority, wthal_isr_priority_t const err_priority, wt_error_t * const error);
 
 #define WTHAL_UART_DEFINE(NAME, UART, XTAL) \
-    WTHAL_ISR_DEFINE(NAME ## _tx, UART_TX_ISR(UART), UART_TXIF(UART), UART_TXIE(UART), UART_TXIP(UART)); \
-    WTHAL_ISR_DEFINE(NAME ## _rx, UART_RX_ISR(UART), UART_RXIF(UART), UART_RXIE(UART), UART_RXIP(UART)); \
-    WTHAL_ISR_DEFINE(NAME ## _err, UART_ERR_ISR(UART), UART_ERIF(UART), UART_ERIE(UART), UART_ERIP(UART)); \
+    WTHAL_ISR_PIC24_DEFINE(NAME ## _tx, UART_TX_ISR(UART), UART_TXIF(UART), UART_TXIE(UART), UART_TXIP(UART)); \
+    WTHAL_ISR_PIC24_DEFINE(NAME ## _rx, UART_RX_ISR(UART), UART_RXIF(UART), UART_RXIE(UART), UART_RXIP(UART)); \
+    WTHAL_ISR_PIC24_DEFINE(NAME ## _err, UART_ERR_ISR(UART), UART_ERIF(UART), UART_ERIE(UART), UART_ERIP(UART)); \
     static void NAME ## _tx_isr_impl(void * const context, wt_error_t * const error) { \
         NAME ## _t * const instance = context; \
         while (! UART_TXBF(UART)) { \
@@ -490,8 +433,8 @@ WTHAL_GPIO_DECLARE(wt_rx14xx_led2);
 WTHAL_GPIO_DEFINE(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6);
 WTHAL_GPIO_DECLARE(wt_rx1400_ethernet_reset);
 WTHAL_GPIO_DEFINE(wt_rx1400_ethernet_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
-WTHAL_ISR_DECLARE(wt_rx14xx_tmr5);
-WTHAL_ISR_DEFINE(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP);
+WTHAL_ISR_PIC24_DECLARE(wt_rx14xx_tmr5);
+WTHAL_ISR_PIC24_DEFINE(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP);
 WTHAL_TIMER_PIC24_DECLARE(wt_rx14xx_timer5);
 WTHAL_TIMER_PIC24_DEFINE(wt_rx14xx_timer5, XTAL, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF);
 
