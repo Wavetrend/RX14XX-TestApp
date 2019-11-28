@@ -58,6 +58,7 @@
 #include "wthal_timer_pic24.h"
 #include "wthal_counter.h"
 #include "wthal_observers.h"
+#include "wthal_isr.h"
 
 /*
                          Main application
@@ -66,67 +67,6 @@
 WTAPI_DECLARE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 
-typedef struct {
-    
-    bool (*enable)(void * const context, bool const enable, wt_error_t * const error);
-    bool (*set_flag)(void * const context, bool const set, wt_error_t * const error);
-    bool (*get_flag)(void * const context, wt_error_t * const error);
-    bool (*set_priority)(void * const context, uint8_t const priority, wt_error_t * const error);
-    uint8_t (*get_priority)(void * const context, wt_error_t * const error);
-    bool (*add_observer)(void * const context, wthal_observer_callback_t callback, void * const callback_context, wt_error_t * const error);
-    
-} wthal_isr_impl_t;
-
-typedef struct {
-    
-    wthal_isr_impl_t * impl;
-    void * context;
-    
-} wthal_isr_t;
-
-typedef enum {
-    wthal_isr_priority_1 = 1,
-    wthal_isr_priority_2 = 2,
-    wthal_isr_priority_3 = 3,
-    wthal_isr_priority_4 = 4,
-    wthal_isr_priority_5 = 5,
-    wthal_isr_priority_6 = 6,
-    wthal_isr_priority_7 = 7,
-} wthal_isr_priority_t;
-
-wthal_isr_t * const wthal_isr_init(wthal_isr_t * const instance, wthal_isr_impl_t * const impl, void * const context, wt_error_t * const error) {
-    bool ok = true;
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
-    if (ok) {
-        instance->impl = impl;
-        instance->context = context;
-    }
-    return ok ? instance : NULL;
-}
-
-bool wthal_isr_enable(wthal_isr_t * const instance, bool const enable, wt_error_t * const error) {
-    return instance->impl->enable(instance->context, enable, error);
-}
-
-bool wthal_isr_set_flag(wthal_isr_t * const instance, bool const set, wt_error_t * const error) {
-    return instance->impl->set_flag(instance->context, set, error);
-}
-
-bool wthal_isr_get_flag(wthal_isr_t * const instance, wt_error_t * const error) {
-    return instance->impl->get_flag(instance->context, error);
-}
-
-bool wthal_isr_set_priority(wthal_isr_t * const instance, uint8_t const priority, wt_error_t * const error) {
-    return instance->impl->set_priority(instance->context, priority, error);
-}
-
-bool wthal_isr_get_priority(wthal_isr_t * const instance, wt_error_t * const error) {
-    return instance->impl->get_priority(instance->context, error);
-}
-
-bool wthal_isr_add_observer(wthal_isr_t * const instance, wthal_observer_callback_t callback, void * const context, wt_error_t * const error) {
-    return instance->impl->add_observer(instance->context, callback, context, error);
-}
 
 #define WTHAL_ISR_DECLARE(NAME) \
     typedef struct { \
@@ -163,11 +103,9 @@ bool wthal_isr_add_observer(wthal_isr_t * const instance, wthal_observer_callbac
         wthal_observer_t * elem = wthal_observers_head(&NAME ## _inactive); \
         bool ok = true; \
         ok = !ok ? ok : wt_assert(elem != NULL, WT_ERROR_ENOSPC, error); \
-        if (ok) { \
-            wthal_observers_delete(&NAME ## _inactive, elem); \
-            wthal_observer_init(elem, callback, callback_context, error); \
-            wthal_observers_add(&NAME ## _active, elem); \
-        } \
+        ok = !ok ? ok : wthal_observers_delete(&NAME ## _inactive, elem, error); \
+        ok = !ok ? ok : (wthal_observer_init(elem, callback, callback_context, error) != NULL); \
+        ok = !ok ? ok : wthal_observers_add(&NAME ## _active, elem, error); \
         return ok; \
     } \
     static wthal_isr_impl_t NAME ## _impl = { \
