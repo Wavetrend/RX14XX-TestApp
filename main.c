@@ -59,6 +59,7 @@
 #include "wthal_counter.h"
 #include "wthal_observers.h"
 #include "wthal_isr_pic24.h"
+#include "wthal_gpio_pic24.h"
 
 /*
                          Main application
@@ -67,128 +68,6 @@
 WTAPI_DECLARE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 
-
-///////////////////////////////// GPIO ///////////////////////////////////////
-
-typedef struct {
-
-    bool (*set)(void * const, bool const high, wt_error_t * const error);
-    bool (*toggle)(void * const, wt_error_t * const error);
-    bool (*get)(void * const context, wt_error_t * const error);
-    bool (*input)(void * const context, bool const input, wt_error_t * const error);
-    bool (*analogue)(void * const context, bool const analogue, wt_error_t * const error);
-    bool (*weak_pull_up)(void * const context, bool const enable, wt_error_t * const error);
-    bool (*weak_pull_down)(void * const context, bool const enable, wt_error_t * const error);
-    bool (*output_drain)(void * const context, bool const enable, wt_error_t * const error);
-    
-} wthal_gpio_impl_t;
-
-typedef struct {
-    
-    wthal_gpio_impl_t * impl;
-    void * context;
-    
-} wthal_gpio_t;
-
-wthal_gpio_t * const wthal_gpio_init(wthal_gpio_t * const instance, wthal_gpio_impl_t * const impl, void * const context, wt_error_t * const error) {
-    bool ok = true;
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
-    ok = !ok ? ok : wt_assert_ptr(impl, error);
-    if (ok) {
-        instance->impl = impl;
-        instance->context = context;
-    }
-    return ok ? instance : NULL;
-}
-
-bool wthal_gpio_set(wthal_gpio_t * const instance, bool const high, wt_error_t * const error) {
-    return instance->impl->set(instance->context, high, error);
-}
-
-bool wthal_gpio_toggle(wthal_gpio_t * const instance, wt_error_t * const error) {
-    return instance->impl->toggle(instance->context, error);
-}
-
-bool wthal_gpio_get(wthal_gpio_t * const instance, wt_error_t * const error) {
-    return instance->impl->get(instance->context, error);
-}
-
-bool wthal_gpio_input(wthal_gpio_t * const instance, bool const input, wt_error_t * const error) {
-    return instance->impl->input(instance->context, input, error);
-}
-
-bool wthal_gpio_analogue(wthal_gpio_t * const instance, bool const analogue, wt_error_t * const error) {
-    return instance->impl->analogue(instance->context, analogue, error);
-}
-
-bool wthal_gpio_weak_pull_up(wthal_gpio_t * const instance, bool const enable, wt_error_t * const error) {
-    return instance->impl->weak_pull_up(instance->context, enable, error);
-}
-
-bool wthal_gpio_weak_pull_down(wthal_gpio_t * const instance, bool const enable, wt_error_t * const error) {
-    return instance->impl->weak_pull_down(instance->context, enable, error);
-}
-
-bool wthal_gpio_output_drain(wthal_gpio_t * const instance, bool const enable, wt_error_t * const error) {
-    return instance->impl->output_drain(instance->context, enable, error);
-}
-
-#define WTHAL_GPIO_DECLARE(NAME) \
-    typedef struct { \
-        wthal_gpio_t gpio; \
-    } NAME ## _t; \
-    wthal_gpio_t * const NAME ## _init(NAME ## _t * const instance, wt_error_t * const error);
-
-#define WTHAL_GPIO_DEFINE(NAME, PORT, TRIS, LAT, ANS, WPU, WPD, ODRAIN) \
-    static bool NAME ## _set_impl(void * const context, bool const high, wt_error_t * const error) { \
-        LAT = high; \
-        return true; \
-    } \
-    static bool NAME ## _toggle_impl(void * const context, wt_error_t * const error) { \
-        return LAT ^= 1; \
-    } \
-    static bool NAME ## _get_impl(void * const context, wt_error_t * const error) { \
-        return PORT; \
-    } \
-    static bool NAME ## _input_impl(void * const context, bool const input, wt_error_t * const error) { \
-        TRIS = input; \
-        return true; \
-    } \
-    static bool NAME ## _analogue_impl(void * const context, bool const analogue, wt_error_t * const error) { \
-        ANS = analogue; \
-        return true; \
-    } \
-    static bool NAME ## _weak_pull_up_impl(void * const context, bool const enabled, wt_error_t * const error) { \
-        WPU = enabled; \
-        return true; \
-    } \
-    static bool NAME ## _weak_pull_down_impl(void * const context, bool const enabled, wt_error_t * const error) { \
-        WPD = enabled; \
-        return true; \
-    } \
-    static bool NAME ## _output_drain_impl(void * const context, bool const enabled, wt_error_t * const error) { \
-        ODRAIN = enabled; \
-        return true; \
-    } \
-    static wthal_gpio_impl_t NAME ## _impl = { \
-        .set = NAME ## _set_impl, \
-        .toggle = NAME ## _toggle_impl, \
-        .get = NAME ## _get_impl, \
-        .input = NAME ## _input_impl, \
-        .analogue = NAME ## _analogue_impl, \
-        .weak_pull_up = NAME ## _weak_pull_up_impl, \
-        .weak_pull_down = NAME ## _weak_pull_down_impl, \
-        .output_drain = NAME ## _output_drain_impl, \
-    }; \
-    wthal_gpio_t * const NAME ## _init(NAME ## _t * const instance, wt_error_t * const error) { \
-        TRIS = 0; \
-        LAT = 0; \
-        ANS = 0; \
-        WPU = 0; \
-        WPD = 0; \
-        ODRAIN = 0; \
-        return wthal_gpio_init(&instance->gpio, &NAME ## _impl, instance, error); \
-    }
 
 ///////////////////////////////// UART ///////////////////////////////////////
 
@@ -427,12 +306,12 @@ WTHAL_UART_DECLARE(wt_rx14xx_primary_ethernet_uart);
 WTHAL_UART_DEFINE(wt_rx14xx_primary_ethernet_uart, 3, XTAL);
 WTHAL_UART_DECLARE(wt_rx14xx_secondary_ethernet_uart);
 WTHAL_UART_DEFINE(wt_rx14xx_secondary_ethernet_uart, 4, XTAL);
-WTHAL_GPIO_DECLARE(wt_rx14xx_led1);
-WTHAL_GPIO_DEFINE(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7);
-WTHAL_GPIO_DECLARE(wt_rx14xx_led2);
-WTHAL_GPIO_DEFINE(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6);
-WTHAL_GPIO_DECLARE(wt_rx1400_ethernet_reset);
-WTHAL_GPIO_DEFINE(wt_rx1400_ethernet_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_led1);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_led2);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx1400_ethernet_reset);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx1400_ethernet_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
 WTHAL_ISR_PIC24_DECLARE(wt_rx14xx_tmr5);
 WTHAL_ISR_PIC24_DEFINE(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP);
 WTHAL_TIMER_PIC24_DECLARE(wt_rx14xx_timer5);
