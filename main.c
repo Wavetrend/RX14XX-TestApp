@@ -51,14 +51,13 @@
 #include <xc.h>
 #include "mcc_generated_files/system.h"
 
-#include "utlist.h"
-
 #include "wtapi_circular_buffer.h"
 #include "wt_assert.h"
 #include "wt_error.h"
 
 #include "wthal_timer_pic24.h"
 #include "wthal_counter.h"
+#include "wthal_observers.h"
 
 /*
                          Main application
@@ -66,44 +65,6 @@
 
 WTAPI_DECLARE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
 WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
-
-//////////////////////////////// OBSERVER /////////////////////////////////////
-
-typedef struct wthal_observer_tag wthal_observer_t;
-typedef void (*wthal_observer_callback_t)(void * const context, wt_error_t * const error);
-
-struct wthal_observer_tag {
-    wthal_observer_callback_t callback;
-    void * context;
-    wt_error_t * error;
-    wthal_observer_t * volatile next;
-    wthal_observer_t * volatile prev;
-};
-
-typedef struct {
-    wthal_observer_t * volatile head;
-} wthal_observers_t;
-
-void wthal_observers_dispatch(wthal_observers_t * const instance) {
-    wthal_observer_t * el, * tmp;
-    DL_FOREACH_SAFE(instance->head, el, tmp) {
-        el->callback(el->context, el->error);
-    }
-}
-
-wthal_observer_t * wthal_observers_head(wthal_observers_t * const instance) {
-    return instance->head;
-}
-
-bool wthal_observers_add(wthal_observers_t * const instance, wthal_observer_t * const elem) {
-    DL_APPEND(instance->head, elem);
-    return true;
-}
-
-bool wthal_observers_delete(wthal_observers_t * const instance, wthal_observer_t * const elem) {
-    DL_DELETE(instance->head, elem);
-    return true;
-}
 
 typedef struct {
     
@@ -204,9 +165,7 @@ bool wthal_isr_add_observer(wthal_isr_t * const instance, wthal_observer_callbac
         ok = !ok ? ok : wt_assert(elem != NULL, WT_ERROR_ENOSPC, error); \
         if (ok) { \
             wthal_observers_delete(&NAME ## _inactive, elem); \
-            elem->callback = callback; \
-            elem->context = callback_context; \
-            elem->error = error; \
+            wthal_observer_init(elem, callback, callback_context, error); \
             wthal_observers_add(&NAME ## _active, elem); \
         } \
         return ok; \
@@ -223,9 +182,8 @@ bool wthal_isr_add_observer(wthal_isr_t * const instance, wthal_observer_callbac
         IE = 0; \
         IF = 0; \
         IP = interrupt_priority; \
-        for (size_t i=0 ; i < size ; i++) { \
-            wthal_observers_add(&NAME ## _inactive, &observers[i]); \
-        } \
+        wthal_observers_init(&NAME ## _active, NULL, 0, error); \
+        wthal_observers_init(&NAME ## _inactive, observers, size, error); \
         return wthal_isr_init(&instance->isr, &NAME ## _impl, instance, error); \
     }
 
