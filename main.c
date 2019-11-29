@@ -51,7 +51,6 @@
 #include <xc.h>
 #include "mcc_generated_files/system.h"
 
-#include "wtapi_circular_buffer.h"
 #include "wt_assert.h"
 #include "wt_error.h"
 
@@ -60,220 +59,11 @@
 #include "wthal_observers.h"
 #include "wthal_isr_pic24.h"
 #include "wthal_gpio_pic24.h"
+#include "wthal_uart_pic24.h"
 
 /*
                          Main application
  */
-
-WTAPI_DECLARE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
-WTAPI_DEFINE_CIRCULAR_BUFFER(uint8_t, wt_rx14xx_uint8_buffer);
-
-
-///////////////////////////////// UART ///////////////////////////////////////
-
-typedef struct {
-    
-    bool (*open)(void * const context, wt_error_t * const error);
-    bool (*close)(void * const context, wt_error_t * const error);
-    bool (*baudrate)(void * const context, uint32_t const baudrate, wt_error_t * const error);
-    bool (*flowcontrol)(void * const context, bool const flowcontrol, wt_error_t * const error);
-    size_t (*read)(void * const context, void * const data, size_t const size, wt_error_t * const error);
-    size_t (*write)(void * const context, void const * const data, size_t const size, wt_error_t * const error);
-    
-} wthal_uart_impl_t;
-
-typedef struct {
-    
-    wthal_uart_impl_t const * impl;
-    void * context;
-    
-} wthal_uart_t;
-
-wthal_uart_t * const wthal_uart_init(wthal_uart_t * const instance, wthal_uart_impl_t const * const impl, void * const context, wt_error_t * const error) {
-    bool ok = true;
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
-    if (ok) {
-        instance->impl = impl;
-        instance->context = context;
-    }
-    return ok ? instance : NULL;
-}
-
-bool wthal_uart_open(wthal_uart_t * const instance, wt_error_t * const error) {
-    return instance->impl->open(instance->context, error);
-}
-
-bool wthal_uart_close(wthal_uart_t * const instance, wt_error_t * const error) {
-    return instance->impl->close(instance->context, error);
-}
-
-bool wthal_uart_baudrate(wthal_uart_t * const instance, uint32_t const baudrate, wt_error_t * const error) {
-    return instance->impl->baudrate(instance->context, baudrate, error);
-}
-
-bool wthal_uart_flowcontrol(wthal_uart_t * const instance, bool const flowcontrol, wt_error_t * const error) {
-    return instance->impl->flowcontrol(instance->context, flowcontrol, error);
-}
-
-bool wthal_uart_read(wthal_uart_t * const instance, void * const data, size_t const size, wt_error_t * const error) {
-    return instance->impl->read(instance->context, data, size, error);
-}
-
-bool wthal_uart_write(wthal_uart_t * const instance, void const * const data, size_t const size, wt_error_t * const error) {
-    return instance->impl->write(instance->context, data, size, error);
-}
-
-#ifndef UART_TESTING
-#define UART_TX_ISR(X)          (_U ## X ## TXInterrupt)
-#define UART_RX_ISR(X)          (_U ## X ## RXInterrupt)
-#define UART_ERR_ISR(X)         (_U ## X ## ErrInterrupt)
-#define UART_TXIE(X)            (_U ## X ## TXIE)
-#define UART_TXIF(X)            (_U ## X ## TXIF)
-#define UART_TXIP(X)            (_U ## X ## TXIP)
-#define UART_RXIE(X)            (_U ## X ## RXIE)
-#define UART_RXIF(X)            (_U ## X ## RXIF)
-#define UART_RXIP(X)            (_U ## X ## RXIP)
-#define UART_ERIE(X)            (_U ## X ## ERIE)
-#define UART_ERIF(X)            (_U ## X ## ERIF)
-#define UART_ERIP(X)            (_U ## X ## ERIP)
-#define UART_TXBF(X)            (U ## X ## STAbits.UTXBF)
-#define UART_TXREG(X)           (U ## X ## TXREG)
-#define UART_RXREG(X)           (U ## X ## RXREG)
-#define UART_STA(X)             (U ## X ## STA)
-#define UART_RXDA(X)            (U ## X ## STAbits.URXDA)
-#define UART_OERR(X)            (U ## X ## STAbits.OERR)
-#define UART_MODE(X)            (U ## X ## MODE)
-#define UART_BRGH(X)            (U ## X ## MODEbits.BRGH)
-#define UART_BRG(X)             (U ## X ## BRG)
-#define UART_UARTEN(X)          (U ## X ## MODEbits.UARTEN)
-#define UART_TXEN(X)            (U ## X ## STAbits.UTXEN)
-#define UART_EN(X)              (U ## X ## MODEbits.UEN)
-#endif /* UART_TESTING */
-
-#define WTHAL_UART_DECLARE(NAME) \
-    WTHAL_ISR_PIC24_DECLARE(NAME ## _tx) \
-    WTHAL_ISR_PIC24_DECLARE(NAME ## _rx) \
-    WTHAL_ISR_PIC24_DECLARE(NAME ## _err) \
-    typedef struct { \
-        uint32_t baudrate; \
-        bool flowcontrol; \
-        wthal_uart_t uart; \
-        wthal_isr_t * tx_isr; \
-        wthal_isr_t * rx_isr; \
-        wthal_isr_t * err_isr; \
-        NAME ## _tx_t _tx_isr; \
-        NAME ## _rx_t _rx_isr; \
-        NAME ## _err_t _err_isr; \
-        wthal_observer_t tx_observers[1]; \
-        wthal_observer_t rx_observers[1]; \
-        wthal_observer_t err_observers[1]; \
-        wt_rx14xx_uint8_buffer_t tx_buffer; \
-        wt_rx14xx_uint8_buffer_t rx_buffer; \
-        uint8_t tx_storage[256]; \
-        uint8_t rx_storage[256]; \
-    } NAME ## _t; \
-    wthal_uart_t * const NAME ## _init(NAME ## _t * const instance, uint32_t const baudrate, bool const flowcontrol, wthal_isr_priority_t const tx_priority, wthal_isr_priority_t const rx_priority, wthal_isr_priority_t const err_priority, wt_error_t * const error);
-
-#define WTHAL_UART_DEFINE(NAME, UART, XTAL) \
-    WTHAL_ISR_PIC24_DEFINE(NAME ## _tx, UART_TX_ISR(UART), UART_TXIF(UART), UART_TXIE(UART), UART_TXIP(UART)); \
-    WTHAL_ISR_PIC24_DEFINE(NAME ## _rx, UART_RX_ISR(UART), UART_RXIF(UART), UART_RXIE(UART), UART_RXIP(UART)); \
-    WTHAL_ISR_PIC24_DEFINE(NAME ## _err, UART_ERR_ISR(UART), UART_ERIF(UART), UART_ERIE(UART), UART_ERIP(UART)); \
-    static void NAME ## _tx_isr_impl(void * const context, wt_error_t * const error) { \
-        NAME ## _t * const instance = context; \
-        while (! UART_TXBF(UART)) { \
-            uint8_t data; \
-            if (wt_rx14xx_uint8_buffer_read(&instance->tx_buffer, &data, sizeof(data), error)) { \
-                UART_TXREG(UART) = data; \
-            } else { \
-                wthal_isr_enable(instance->tx_isr, false, error); \
-                break; \
-            } \
-        } \
-    } \
-    static void NAME ## _rx_isr_impl(void * const context, wt_error_t * const error) { \
-        NAME ## _t * const instance = context; \
-        bool ok = true; \
-        while (ok && UART_RXDA(UART)) { \
-            uint8_t data = UART_RXREG(UART); \
-            ok = !ok ? ok : wt_rx14xx_uint8_buffer_write(&instance->rx_buffer, &data, sizeof(data), error); \
-        } \
-    } \
-    static void NAME ## _err_isr_impl(void * const context, wt_error_t * const error) { \
-        if (UART_OERR(UART) == 1) { \
-            UART_OERR(UART) = 0; \
-        } \
-    } \
-    static bool NAME ## _open_impl(void * const context, wt_error_t * const error) { \
-        NAME ## _t * const instance = context; \
-        UART_MODE(UART) = 0x0000; \
-        UART_BRGH(UART) = 1; \
-        UART_STA(UART) = 0x0000; \
-        wthal_uart_baudrate(&instance->uart, instance->baudrate, error); \
-        wthal_uart_flowcontrol(&instance->uart, instance->flowcontrol, error); \
-        wthal_isr_enable(instance->tx_isr, false, error); \
-        wthal_isr_enable(instance->rx_isr, true, error); \
-        wthal_isr_enable(instance->err_isr, true, error); \
-        UART_UARTEN(UART) = 1; \
-        UART_TXEN(UART) = 1; \
-        return true; \
-    } \
-    static bool NAME ## _close_impl(void * const context, wt_error_t * const error) { \
-        NAME ## _t * const instance = context; \
-        wthal_isr_enable(instance->tx_isr, false, error); \
-        wthal_isr_enable(instance->rx_isr, false, error); \
-        wthal_isr_enable(instance->err_isr, false, error); \
-        UART_UARTEN(UART) = 0; \
-        UART_TXEN(UART) = 0; \
-        return true; \
-    } \
-    static bool NAME ## _baudrate_impl(void * const context, uint32_t const baudrate, wt_error_t * const error) { \
-        NAME ## _t * const instance = context; \
-        instance->baudrate = baudrate; \
-        UART_BRG(UART) = (XTAL / (4 * instance->baudrate)) - 1; \
-        return true; \
-    } \
-    static bool NAME ## _flowcontrol_impl(void * const context, bool const flowcontrol, wt_error_t * const error) { \
-        NAME ## _t * const instance = context; \
-        instance->flowcontrol = flowcontrol; \
-        UART_EN(UART) = instance->flowcontrol ? 2 : 0; \
-        return true; \
-    } \
-    static size_t NAME ## _read_impl(void * const context, void * const data, size_t const size, wt_error_t * const error) { \
-        NAME ## _t * const instance = context; \
-        return wt_rx14xx_uint8_buffer_read(&instance->rx_buffer, data, size, error); \
-    } \
-    static size_t NAME ## _write_impl(void * const context, void const * const data, size_t const size, wt_error_t * const error) { \
-        NAME ## _t * const instance = context; \
-        bool ok = true; \
-        size_t written = wt_rx14xx_uint8_buffer_write(&instance->tx_buffer, data, size, error); \
-        if (written > 0) { \
-            ok = !ok ? ok : wthal_isr_set_flag(instance->tx_isr, true, error); \
-            ok = !ok ? ok : wthal_isr_enable(instance->tx_isr, true, error); \
-        } \
-        return written; \
-    } \
-    static wthal_uart_impl_t const NAME ## _impl = { \
-        .open = NAME ## _open_impl, \
-        .close = NAME ## _close_impl, \
-        .baudrate = NAME ## _baudrate_impl, \
-        .flowcontrol = NAME ## _flowcontrol_impl, \
-        .read = NAME ## _read_impl, \
-        .write = NAME ## _write_impl, \
-    }; \
-    wthal_uart_t * const NAME ## _init(NAME ## _t * const instance, uint32_t const baudrate, bool const flowcontrol, wthal_isr_priority_t const tx_priority, wthal_isr_priority_t const rx_priority, wthal_isr_priority_t const err_priority, wt_error_t * const error) { \
-        bool ok = true; \
-        instance->baudrate = baudrate; \
-        instance->flowcontrol = flowcontrol; \
-        ok = !ok ? ok : (instance->tx_isr = NAME ## _tx_init(&instance->_tx_isr, tx_priority, instance->tx_observers, 1, error)) != NULL; \
-        ok = !ok ? ok : (instance->rx_isr = NAME ## _rx_init(&instance->_rx_isr, rx_priority, instance->rx_observers, 1, error)) != NULL; \
-        ok = !ok ? ok : (instance->err_isr = NAME ## _err_init(&instance->_err_isr, err_priority, instance->err_observers, 1, error)) != NULL; \
-        ok = !ok ? ok : wthal_isr_add_observer(instance->tx_isr, NAME ## _tx_isr_impl, instance, error); \
-        ok = !ok ? ok : wthal_isr_add_observer(instance->rx_isr, NAME ## _rx_isr_impl, instance, error); \
-        ok = !ok ? ok : wthal_isr_add_observer(instance->err_isr, NAME ## _err_isr_impl, instance, error); \
-        ok = !ok ? ok : wt_rx14xx_uint8_buffer_init(&instance->tx_buffer, instance->tx_storage, 256, error); \
-        ok = !ok ? ok : wt_rx14xx_uint8_buffer_init(&instance->rx_buffer, instance->rx_storage, 256, error); \
-        return ok ? wthal_uart_init(&instance->uart, &NAME ## _impl, instance, error) : NULL; \
-    }
 
 //////////////////////////////// STDOUT ///////////////////////////////////////
 
@@ -298,14 +88,14 @@ bool wthal_set_stdout(wthal_uart_t * const uart, wt_error_t * const error) {
 
 #define XTAL (14745600)
 
-WTHAL_UART_DECLARE(wt_rx14xx_xbee_uart);
-WTHAL_UART_DEFINE(wt_rx14xx_xbee_uart, 1, XTAL);
-WTHAL_UART_DECLARE(wt_rx14xx_debug_uart);
-WTHAL_UART_DEFINE(wt_rx14xx_debug_uart, 2, XTAL);
-WTHAL_UART_DECLARE(wt_rx14xx_primary_ethernet_uart);
-WTHAL_UART_DEFINE(wt_rx14xx_primary_ethernet_uart, 3, XTAL);
-WTHAL_UART_DECLARE(wt_rx14xx_secondary_ethernet_uart);
-WTHAL_UART_DEFINE(wt_rx14xx_secondary_ethernet_uart, 4, XTAL);
+WTHAL_UART_PIC24_DECLARE(wt_rx14xx_xbee_uart);
+WTHAL_UART_PIC24_DEFINE(wt_rx14xx_xbee_uart, 1, XTAL);
+WTHAL_UART_PIC24_DECLARE(wt_rx14xx_debug_uart);
+WTHAL_UART_PIC24_DEFINE(wt_rx14xx_debug_uart, 2, XTAL);
+WTHAL_UART_PIC24_DECLARE(wt_rx14xx_primary_ethernet_uart);
+WTHAL_UART_PIC24_DEFINE(wt_rx14xx_primary_ethernet_uart, 3, XTAL);
+WTHAL_UART_PIC24_DECLARE(wt_rx14xx_secondary_ethernet_uart);
+WTHAL_UART_PIC24_DEFINE(wt_rx14xx_secondary_ethernet_uart, 4, XTAL);
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_led1);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7);
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_led2);
