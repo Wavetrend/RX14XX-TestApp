@@ -124,6 +124,14 @@ static wthal_clock_impl_t const wt_rx1400_clock_impl = {
     .now = wt_rx1400_clock_now_impl,
 };
 
+static void wt_rx1400_clock_isr(void * const context, wt_error_t * const error) {
+    wt_rx1400_clock_t * const instance = context;
+    
+    (void)wthal_counter_increment(instance->counter, error);
+    wthal_clock_alarm_dispatch(&instance->clock);
+    
+}
+
 wthal_clock_t * wt_rx1400_clock_init(
     wt_rx1400_clock_t * const instance,
     wthal_timer_t * const timer,
@@ -138,7 +146,7 @@ wthal_clock_t * wt_rx1400_clock_init(
     instance->isr = isr;
     instance->counter = counter;
     
-    ok = !ok ? ok : wthal_isr_add_observer(instance->isr, wthal_counter_isr, instance->counter, error);
+    ok = !ok ? ok : wthal_isr_add_observer(instance->isr, wt_rx1400_clock_isr, instance, error);
     ok = !ok ? ok : wthal_clock_init(&instance->clock, &wt_rx1400_clock_impl, instance, instance->alarm_storage, sizeof(instance->alarm_storage) / sizeof(instance->alarm_storage[0]), error);
     ok = !ok ? ok : wthal_isr_enable(instance->isr, true, error);
     ok = !ok ? ok : wthal_timer_start(instance->timer, msecs, error);
@@ -201,15 +209,20 @@ typedef struct {
     wthal_observer_t t5_observers[WT_RX1400_HAL_T5_OBSERVER_SIZE];
     
     wt_rx14xx_system_t system;
+
     wt_rx14xx_tmr5_t t5_isr;
-    wt_rx14xx_led1_t startup_led;
-    wt_rx14xx_led2_t activity_led;
-    wt_rx1400_ethernet_reset_t ethernet_reset;
     wt_rx14xx_timer5_t timer5;
     wthal_counter_t counter;
     wt_rx1400_clock_t clock;
-    wt_rx14xx_debug_uart_t debug_uart;
+
+    wt_rx14xx_led1_t startup_led;
+    wt_rx14xx_led2_t activity_led;
+
     wt_rx14xx_xbee_uart_t xbee_uart;
+
+    wt_rx14xx_debug_uart_t debug_uart;
+
+    wt_rx1400_ethernet_reset_t ethernet_reset;
     wt_rx14xx_primary_ethernet_uart_t primary_ethernet_uart;
     wt_rx14xx_secondary_ethernet_uart_t secondary_ethernet_uart;
     
@@ -259,17 +272,22 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     PPS_LOCK();
     
     ok = !ok ? ok : (instance->hal.system = wt_rx14xx_system_init(&instance->system, error)) != NULL;
+
     ok = !ok ? ok : (instance->hal.t5_isr = wt_rx14xx_tmr5_init(&instance->t5_isr, wt_rx1400_isr_priority_timer, instance->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.startup_led = wt_rx14xx_led1_init(&instance->startup_led, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_led2_init(&instance->activity_led, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.ethernet_reset = wt_rx1400_ethernet_reset_init(&instance->ethernet_reset, error)) != NULL;
     ok = !ok ? ok : (instance->hal.timer5 = wt_rx14xx_timer5_init(&instance->timer5, error)) != NULL;
     ok = !ok ? ok : (instance->hal.counter = wthal_counter_init(&instance->counter, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.debug_uart = wt_rx14xx_debug_uart_init(&instance->debug_uart, 230400, true, wt_rx1400_isr_priority_debug_uart_tx, wt_rx1400_isr_priority_debug_uart_rx, wt_rx1400_isr_priority_debug_uart_err, error)) != NULL;
+    ok = !ok ? ok : (instance->hal.clock = wt_rx1400_clock_init(&instance->clock, instance->hal.timer5, instance->hal.t5_isr, instance->hal.counter, 10, error)) != NULL;
+
+    ok = !ok ? ok : (instance->hal.startup_led = wt_rx14xx_led1_init(&instance->startup_led, error)) != NULL;
+    ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_led2_init(&instance->activity_led, error)) != NULL;
+
     ok = !ok ? ok : (instance->hal.xbee_uart = wt_rx14xx_xbee_uart_init(&instance->xbee_uart, 9600, true, wt_rx1400_isr_priority_xbee_uart_tx, wt_rx1400_isr_priority_xbee_uart_rx, wt_rx1400_isr_priority_xbee_uart_err, error)) != NULL;
+
+    ok = !ok ? ok : (instance->hal.debug_uart = wt_rx14xx_debug_uart_init(&instance->debug_uart, 230400, true, wt_rx1400_isr_priority_debug_uart_tx, wt_rx1400_isr_priority_debug_uart_rx, wt_rx1400_isr_priority_debug_uart_err, error)) != NULL;
+
+    ok = !ok ? ok : (instance->hal.ethernet_reset = wt_rx1400_ethernet_reset_init(&instance->ethernet_reset, error)) != NULL;
     ok = !ok ? ok : (instance->hal.primary_ethernet_uart = wt_rx14xx_primary_ethernet_uart_init(&instance->primary_ethernet_uart, 115200, true, wt_rx1400_isr_priority_primary_ethernet_uart_tx, wt_rx1400_isr_priority_primary_ethernet_uart_rx, wt_rx1400_isr_priority_primary_ethernet_uart_err, error)) != NULL;
     ok = !ok ? ok : (instance->hal.secondary_ethernet_uart = wt_rx14xx_secondary_ethernet_uart_init(&instance->secondary_ethernet_uart, 115200, true, wt_rx1400_isr_priority_secondary_ethernet_uart_tx, wt_rx1400_isr_priority_secondary_ethernet_uart_rx, wt_rx1400_isr_priority_secondary_ethernet_uart_err, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.clock = wt_rx1400_clock_init(&instance->clock, instance->hal.timer5, instance->hal.t5_isr, instance->hal.counter, 10, error)) != NULL;
     
     ok = !ok ? ok : wthal_gpio_weak_pull_up(instance->hal.ethernet_reset, true, error);
     
