@@ -62,6 +62,7 @@
 #include "wthal_isr_pic24.h"
 #include "wthal_gpio_pic24.h"
 #include "wthal_uart_pic24.h"
+#include "wt_rx1400_clock.h"
 
 /*
                          Main application
@@ -81,78 +82,6 @@ int __attribute__ ( ( __section__(".libc.write" ) ) ) write(int handle, void * b
 bool wthal_set_stdout(wthal_uart_t * const uart, wt_error_t * const error) {
     wthal_stdout_uart = uart;
     return true;
-}
-
-///////////////////////////////// CLOCK //////////////////////////////////////
-
-#define CLOCK_TICK_MAX (9999999U)
-
-typedef struct {
-
-    wthal_clock_t clock;
-    uint32_t msecs; 
-   
-    wthal_timer_t * timer;
-    wthal_isr_t * isr;
-    wthal_counter_t * counter;
-    
-    wthal_clock_alarm_t alarm_storage[5];
-    
-} wt_rx1400_clock_t;
-
-static wthal_clock_tick_t wt_rx1400_clock_now_impl(
-    void * const context,
-    wthal_clock_tick_t * const limit
-) {
-    wt_rx1400_clock_t * const instance = context;
-    
-    if (limit != NULL) {
-        *limit = CLOCK_TICK_MAX;
-    }
-    
-    wthal_clock_tick_t ticks = wthal_counter_get(instance->counter, NULL) * instance->msecs;
-
-    if (ticks >= CLOCK_TICK_MAX) {
-        wthal_counter_reset(instance->counter, NULL);
-        ticks = 0;
-    }
-    
-    return ticks;
-}
-
-static wthal_clock_impl_t const wt_rx1400_clock_impl = {
-    .now = wt_rx1400_clock_now_impl,
-};
-
-static void wt_rx1400_clock_isr(void * const context, wt_error_t * const error) {
-    wt_rx1400_clock_t * const instance = context;
-    
-    (void)wthal_counter_increment(instance->counter, error);
-    wthal_clock_alarm_dispatch(&instance->clock);
-    
-}
-
-wthal_clock_t * wt_rx1400_clock_init(
-    wt_rx1400_clock_t * const instance,
-    wthal_timer_t * const timer,
-    wthal_isr_t * const isr,
-    wthal_counter_t * const counter,
-    uint32_t const msecs,
-    wt_error_t * const error
-) {
-    bool ok = true;
-
-    instance->timer = timer;
-    instance->isr = isr;
-    instance->counter = counter;
-    
-    ok = !ok ? ok : wthal_isr_add_observer(instance->isr, wt_rx1400_clock_isr, instance, error);
-    ok = !ok ? ok : wthal_clock_init(&instance->clock, &wt_rx1400_clock_impl, instance, instance->alarm_storage, sizeof(instance->alarm_storage) / sizeof(instance->alarm_storage[0]), error);
-    ok = !ok ? ok : wthal_isr_enable(instance->isr, true, error);
-    ok = !ok ? ok : wthal_timer_start(instance->timer, msecs, error);
-    instance->msecs = ok ? msecs : 0;
-    
-    return ok ? &instance->clock : NULL;
 }
 
 ///////////////////////////////// MAIN ///////////////////////////////////////
@@ -200,13 +129,11 @@ typedef struct {
     
 } wt_hal_t;
 
-#define WT_RX1400_HAL_T5_OBSERVER_SIZE          (5)
-
 typedef struct {
     
     wt_hal_t hal;
     
-    wthal_observer_t t5_observers[WT_RX1400_HAL_T5_OBSERVER_SIZE];
+    wthal_observer_t t5_observers[3];
     
     wt_rx14xx_system_t system;
 
@@ -273,7 +200,7 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     
     ok = !ok ? ok : (instance->hal.system = wt_rx14xx_system_init(&instance->system, error)) != NULL;
 
-    ok = !ok ? ok : (instance->hal.t5_isr = wt_rx14xx_tmr5_init(&instance->t5_isr, wt_rx1400_isr_priority_timer, instance->t5_observers, WT_RX1400_HAL_T5_OBSERVER_SIZE, error)) != NULL;
+    ok = !ok ? ok : (instance->hal.t5_isr = wt_rx14xx_tmr5_init(&instance->t5_isr, wt_rx1400_isr_priority_timer, instance->t5_observers, sizeof(instance->t5_observers) / sizeof(instance->t5_observers[0]), error)) != NULL;
     ok = !ok ? ok : (instance->hal.timer5 = wt_rx14xx_timer5_init(&instance->timer5, error)) != NULL;
     ok = !ok ? ok : (instance->hal.counter = wthal_counter_init(&instance->counter, error)) != NULL;
     ok = !ok ? ok : (instance->hal.clock = wt_rx1400_clock_init(&instance->clock, instance->hal.timer5, instance->hal.t5_isr, instance->hal.counter, 10, error)) != NULL;
