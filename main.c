@@ -55,7 +55,7 @@
 #include "wt_error.h"
 #include "wt_task.h"
 
-#include "wthal_system.h"
+#include "wthal_system_pic24.h"
 #include "wthal_timer_pic24.h"
 #include "wthal_counter.h"
 #include "wthal_observers.h"
@@ -82,57 +82,6 @@ bool wthal_set_stdout(wthal_uart_t * const uart, wt_error_t * const error) {
     wthal_stdout_uart = uart;
     return true;
 }
-
-//////////////////////////////// SYSTEM //////////////////////////////////////
-
-#define WTHAL_SYSTEM_PIC24_DECLARE(NAME) \
-    typedef struct { \
-        wthal_system_t system; \
-    } NAME ## _t; \
-    wthal_system_t * NAME ## _init( \
-        NAME ## _t * const instance, \
-        wt_error_t * const error \
-    );
-
-#define WTHAL_SYSTEM_PIC24_DEFINE(NAME, RCON, CLRWDT, NOP) \
-    static bool NAME ## _reset_status_impl( \
-        void * const context, \
-        uint16_t * const status, \
-        bool const clear, \
-        wt_error_t * const error \
-    ) { \
-        *status = RCON; \
-        if (clear) { \
-            RCON = 0; \
-        } \
-        return true; \
-    } \
-    static bool NAME ## _clear_watchdog_timer_impl( \
-        void * const context, \
-        wt_error_t * const error \
-    ) { \
-        CLRWDT; \
-        return true; \
-    } \
-    static bool NAME ## _nop_impl( \
-        void * const context, \
-        wt_error_t * const error \
-    ) { \
-        NOP; \
-        return true; \
-    } \
-    static wthal_system_impl_t NAME ## _impl = { \
-        .reset_status = NAME ## _reset_status_impl, \
-        .clear_watchdog_timer = NAME ## _clear_watchdog_timer_impl, \
-        .nop = NAME ## _nop_impl, \
-    }; \
-    wthal_system_t * NAME ## _init( \
-        NAME ## _t * const instance, \
-        wt_error_t * const error \
-    ) { \
-        bool ok = wthal_system_init(&instance->system, &NAME ## _impl, instance, error); \
-        return ok ? &instance->system : NULL; \
-    }
 
 ///////////////////////////////// CLOCK //////////////////////////////////////
 
@@ -353,7 +302,7 @@ bool wt_rx1400_app_task_main(
     bool ok = true;
     
     static uint32_t count = 0;
-    printf("\n App Task %lu, counter=%lu", count++, wthal_counter_get(instance->hal->counter, error));
+    printf("\n App Task %lu, counter=%lu", count++, (uint32_t)wthal_counter_get(instance->hal->counter, error));
     
     ok = !ok ? ok : wthal_gpio_toggle(instance->hal->activity_led, error);
     ok = !ok ? ok : wt_task_sleep(task, 1000, error);
@@ -384,9 +333,13 @@ int main(void)
     wt_rx1400_hal_t rx1400_hal;
     wt_rx1400_app_task_t app;
 
-    wt_hal_t * hal = wt_rx1400_hal_init(&rx1400_hal, &error);
+    bool ok = true;
+    
+    ok = !ok ? ok : wt_error_init(&error);
+    
+    wt_hal_t * hal = ok ? wt_rx1400_hal_init(&rx1400_hal, &error) : NULL;
  
-    bool ok = (hal != NULL);
+    ok = (hal != NULL);
     
     ok = (wt_rx1400_app_task_init(&app, hal, &error) != NULL);
     
