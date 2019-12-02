@@ -85,7 +85,7 @@ bool wthal_set_stdout(wthal_uart_t * const uart, wt_error_t * const error) {
 
 ///////////////////////////////// CLOCK //////////////////////////////////////
 
-#define CLOCK_TICK_MAX (999999U)
+#define CLOCK_TICK_MAX (9999999U)
 
 typedef struct {
 
