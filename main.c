@@ -110,7 +110,7 @@ WTHAL_ISR_PIC24_DEFINE(wt_rx14xx_tmr5, _T5Interrupt, _T5IF, _T5IE, _T5IP);
 WTHAL_TIMER_PIC24_DECLARE(wt_rx14xx_timer5);
 WTHAL_TIMER_PIC24_DEFINE(wt_rx14xx_timer5, XTAL, TMR5, PR5, T5CONbits.TON, T5CONbits.TCKPS, _T5IF);
 WTHAL_SYSTEM_PIC24_DECLARE(wt_rx14xx_system);
-WTHAL_SYSTEM_PIC24_DEFINE(wt_rx14xx_system, RCON, ClrWdt(), Nop());
+WTHAL_SYSTEM_PIC24_DEFINE(wt_rx14xx_system, RCON, ClrWdt(), Nop(), asm("reset"));
 
 typedef struct {
     
@@ -268,6 +268,11 @@ wt_task_t * wt_rx1400_app_task_init(
     return ok ? &instance->task : NULL;
 }
 
+static void device_reset(void * const context) {
+    wthal_system_t * const system = context;
+    (void)wthal_system_reset(system, NULL);
+}
+
 int main(void)
 {
     wt_error_t error;
@@ -291,7 +296,9 @@ int main(void)
     while (ok && wt_task_incomplete(&app.task)) {
         ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
         ok = !ok ? ok : wt_task_spin(&app.task, &error);
-//        ok = !ok ? wthal_system_reset(hal->system, 3000, &error) : wthal_system_nop(hal);
+        if (!ok) {
+            ok = wthal_clock_set_alarm(hal->clock, device_reset, hal->system, 3000, &error);
+        }
         wthal_system_nop(hal->system, &error);
     }
     
