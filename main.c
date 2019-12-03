@@ -56,6 +56,11 @@
 #include "wt_task.h"
 
 #include "wtio.h"
+#include "wtapi.h"
+#include "wtapi_xbee.h"
+#include "wtapi_host.h"
+#include "wtapi_xbee_receive_packet.h"
+
 #include "wthal_system_pic24.h"
 #include "wthal_timer_pic24.h"
 #include "wthal_counter.h"
@@ -293,12 +298,18 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     
 }
 
+/////////////////////////////// APP_TASK //////////////////////////////////////
+
 typedef struct {
     
     wt_task_t task;
-    wt_hal_t * hal;
 //    wt_rx1400_mesh_init_task_t mesh_task;
 //    wt_rx1400_host_init_task_t host_task;
+    
+    wthal_gpio_t * activity_led;
+    wtapi_t * xbee_api;
+    wtapi_t * host_primary_api;
+    wtapi_t * host_secondary_api;
     
 } wt_rx1400_app_task_t;
 
@@ -311,24 +322,101 @@ bool wt_rx1400_app_task_main(
     bool ok = true;
     
     static uint32_t count = 0;
-    printf("\n App Task %lu, counter=%lu", count++, (uint32_t)wthal_counter_get(instance->hal->counter, error));
+    printf("\n App Task %lu", count++);
     
-    ok = !ok ? ok : wthal_gpio_toggle(instance->hal->activity_led, error);
+    ok = !ok ? ok : wthal_gpio_toggle(instance->activity_led, error);
     ok = !ok ? ok : wt_task_sleep(task, 1000, error);
     return true;
 }
 
+////////////////////////////// XBEE DISPATCH //////////////////////////////////
+
+static wtapi_dispatch_entry_t xbee_opcode_dispatch_table[] = {
+    WTAPI_DISPATCH_ENTRY_FINAL,
+};
+
+static bool is_xbee_receive_packet(
+  void const * const data,
+  size_t const size,
+  void * const context,
+  wt_error_t * const error
+) {
+  return *((wtapi_xbee_frame_type_t *)data) == WTAPI_XBEE_FRAME_TYPE_RECEIVE_PACKET;
+}
+
+static void xbee_packet_handler(
+  void const * const data,
+  size_t const size,
+  void * const context, 
+  wt_error_t * const error
+) {
+#ifndef DISABLE_XBEE_PACKET_HANDLER
+  wtapi_xbee_receive_packet_t packet;
+  wtapi_xbee_receive_packet_init_from_data(&packet, ((uint8_t *)data), size, error);
+//  debug_dump(WT_RX1410_DEBUG_MESH_TASK, "DT <<", packet.header.data, packet.size);
+  wtapi_dispatch(xbee_opcode_dispatch_table, &packet.header.fields.address, packet.header.data, packet.size, context, error);
+#endif
+}
+
+////////////////////////////// HOST DISPATCH //////////////////////////////////
+
+static wtapi_dispatch_entry_t host_opcode_dispatch_table[] = {
+    WTAPI_DISPATCH_ENTRY_FINAL,
+};
+
+static wt_dispatch_entry_t xbee_dispatch_table[] = {
+    { is_xbee_receive_packet, xbee_packet_handler },
+    WT_DISPATCH_TABLE_FINAL,
+};
+
+static bool is_host_receive_packet(
+  void const * const data,
+  size_t const size,
+  void * const context,
+  wt_error_t * const error
+) {
+  return true;
+}
+
+static void host_packet_handler(
+  void const * const data,
+  size_t const size,
+  void * const context,
+  wt_error_t * const error
+) {
+#ifndef DISABLE_HOST_PACKET_HANDLER
+  wtapi_host_frame_t const * const frame = data;
+  uint8_t buffer[WTAPI_HOST_FRAME_DATA_MAX+1U];
+  buffer[0] = frame->opcode;
+  size_t length = frame->length-sizeof(wtapi_address_t);
+  memcpy(&buffer[1], frame->data, length);
+  wtapi_dispatch(host_opcode_dispatch_table, &frame->address, buffer, length, context, error);
+#endif
+}
+
+static wt_dispatch_entry_t host_dispatch_table[] = {
+    { is_host_receive_packet, host_packet_handler },
+    WT_DISPATCH_TABLE_FINAL,
+};
+
 wt_task_t * wt_rx1400_app_task_init(
     wt_rx1400_app_task_t * const instance,
-    wt_hal_t * const hal,
+    wthal_clock_t * const clock,
+    wthal_gpio_t * const activity_led,
+    wtapi_t * const xbee_api,
+    wtapi_t * const host_primary_api,
+    wtapi_t * const host_secondary_api,
     wt_error_t * const error
 ) {
     bool ok = true;
 
-    instance->hal = hal;
-    
-    ok = !ok ? ok : wt_task_init(&instance->task, wt_rx1400_app_task_main, instance, hal->clock, error);
-    
+    ok = !ok ? ok : wt_task_init(&instance->task, wt_rx1400_app_task_main, instance, clock, error);
+
+    instance->activity_led = activity_led;
+    instance->xbee_api = xbee_api;
+    instance->host_primary_api = host_primary_api;
+    instance->host_secondary_api = host_secondary_api;
+        
     return ok ? &instance->task : NULL;
 }
 
@@ -344,18 +432,45 @@ int main(void)
     // initialize the device - MUST COME FIRST OR WILL OVERRIDE HAL STYLE CONFIG
     SYSTEM_Initialize();
 
-    wt_rx1400_hal_t rx1400_hal;
-    wt_rx1400_app_task_t app;
-
     bool ok = true;
     
     ok = !ok ? ok : wt_error_init(&error);
     
+    // HAL
+    wt_rx1400_hal_t rx1400_hal;
     wt_hal_t * hal = ok ? wt_rx1400_hal_init(&rx1400_hal, &error) : NULL;
- 
     ok = (hal != NULL);
     
-    ok = (wt_rx1400_app_task_init(&app, hal, &error) != NULL);
+    // XBEE API
+    wtio_uart_t xbee_uart;
+    wtapi_xbee_t xbee_impl;
+    wtapi_t xbee_api;
+    
+    ok = !ok ? ok : (wtio_uart_init(&xbee_uart, hal->xbee_uart, &error) != NULL);
+    ok = !ok ? ok : wtapi_xbee_init(&xbee_impl, xbee_dispatch_table, NULL, &xbee_uart.wtio, 0, 0, hal->clock, &error);
+    ok = !ok ? ok : wtapi_init(&xbee_api, &xbee_uart, &xbee_impl.impl, hal->clock, &error);
+    
+    // HOST PRIMARY API
+    wtio_uart_t host_primary_uart;
+    wtapi_host_t host_primary_impl;
+    wtapi_t host_primary_api;
+
+    ok = !ok ? ok : (wtio_uart_init(&host_primary_uart, hal->primary_ethernet_uart, &error) != NULL);
+    ok = !ok ? ok : wtapi_host_init(&host_primary_impl, host_dispatch_table, NULL, &host_primary_uart.wtio, &error);
+    ok = !ok ? ok : wtapi_init(&host_primary_api, &host_primary_uart, &host_primary_impl.impl, hal->clock, &error);
+    
+    // HOST SECONDARY API
+    wtio_uart_t host_secondary_uart;
+    wtapi_host_t host_secondary_impl;
+    wtapi_t host_secondary_api;
+    
+    ok = !ok ? ok : (wtio_uart_init(&host_secondary_uart, hal->primary_ethernet_uart, &error) != NULL);
+    ok = !ok ? ok : wtapi_host_init(&host_secondary_impl, host_dispatch_table, NULL, &host_secondary_uart.wtio, &error);
+    ok = !ok ? ok : wtapi_init(&host_secondary_api, &host_secondary_uart, &host_secondary_impl.impl, hal->clock, &error);
+
+    wt_rx1400_app_task_t app;
+    
+    ok = (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, &xbee_api, &host_primary_api, &host_secondary_api, &error) != NULL);
     
     while (ok && wt_task_incomplete(&app.task)) {
         ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
