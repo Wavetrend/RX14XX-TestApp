@@ -55,6 +55,7 @@
 #include "wt_error.h"
 #include "wt_task.h"
 
+#include "wtio.h"
 #include "wthal_system_pic24.h"
 #include "wthal_timer_pic24.h"
 #include "wthal_counter.h"
@@ -83,6 +84,69 @@ bool wthal_set_stdout(wthal_uart_t * const uart, wt_error_t * const error) {
     wthal_stdout_uart = uart;
     return true;
 }
+
+///////////////////////////////// WTIO_UART ///////////////////////////////////////
+
+typedef struct {
+
+    wtio_t wtio;
+    wthal_uart_t * uart;
+    
+} wtio_uart_t;
+
+static bool wtio_uart_open_impl(void * const context, wt_error_t * const error) {
+    wtio_uart_t * const instance = context;
+    return wthal_uart_open(instance->uart, error);
+}
+
+static bool wtio_uart_close_impl(void * const context, wt_error_t * const error) {
+    wtio_uart_t * const instance = context;
+    return wthal_uart_close(instance->uart, error);
+}
+
+static size_t wtio_uart_read_impl(void * const context, void * const data, size_t const size, wt_error_t * const error) {
+    wtio_uart_t * const instance = context;
+    return wthal_uart_read(instance->uart, data, size, error);
+}
+
+static size_t wtio_uart_write_impl(void * const context, void const * const data, size_t const size, wt_error_t * const error) {
+    wtio_uart_t * const instance = context;
+    return wthal_uart_write(instance->uart, data, size, error);
+}
+
+static bool wtio_uart_baudrate_impl(void * const context, uint32_t const baudrate, wt_error_t * const error) {
+    wtio_uart_t * const instance = context;
+    return wthal_uart_baudrate(instance->uart, baudrate, error);
+}
+
+static bool wtio_uart_flowcontrol_impl(void * const context, bool const flowcontrol, wt_error_t * const error) {
+    wtio_uart_t * const instance = context;
+    return wthal_uart_flowcontrol(instance->uart, flowcontrol, error);
+}
+
+wtio_t * wtio_uart_init(
+    wtio_uart_t * const instance,
+    wthal_uart_t * const uart,
+    wt_error_t * const error
+) {
+    bool ok = true;
+   
+    ok = !ok ? ok : wt_assert_ptr(instance, error);
+
+    if (ok) {
+        instance->wtio.context = instance;
+        instance->wtio.open = wtio_uart_open_impl;
+        instance->wtio.close = wtio_uart_close_impl;
+        instance->wtio.read = wtio_uart_read_impl;
+        instance->wtio.write = wtio_uart_write_impl;
+        instance->wtio.baudrate = wtio_uart_baudrate_impl;
+        instance->wtio.flowcontrol = wtio_uart_flowcontrol_impl;
+    }
+    
+    return ok ? &instance->wtio : NULL;
+}
+
+
 
 ///////////////////////////////// MAIN ///////////////////////////////////////
 
