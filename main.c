@@ -68,6 +68,7 @@
 #include "wthal_isr_pic24.h"
 #include "wthal_gpio_pic24.h"
 #include "wthal_uart_pic24.h"
+#include "wt_rx1400_app_task.h"
 #include "wt_rx1400_clock.h"
 
 /*
@@ -300,33 +301,6 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
 
 /////////////////////////////// APP_TASK //////////////////////////////////////
 
-typedef struct {
-    
-    wt_task_t task;
-//    wt_rx1400_mesh_init_task_t mesh_task;
-//    wt_rx1400_host_init_task_t host_task;
-    
-    wthal_gpio_t * activity_led;
-    wtapi_t * xbee_api;
-    wtapi_t * host_primary_api;
-    wtapi_t * host_secondary_api;
-    
-} wt_rx1400_app_task_t;
-
-bool wt_rx1400_app_task_main(
-    wt_task_t * const task,
-    void * const context, 
-    wt_error_t * const error
-) {
-    wt_rx1400_app_task_t * const instance = context;
-    bool ok = true;
-    
-    static uint32_t count = 0;
-    printf("\n App Task %lu", count++);
-    
-    ok = !ok ? ok : wthal_gpio_toggle(instance->activity_led, error);
-    ok = !ok ? ok : wt_task_sleep(task, 1000, error);
-    return true;
 }
 
 ////////////////////////////// XBEE DISPATCH //////////////////////////////////
@@ -399,26 +373,8 @@ static wt_dispatch_entry_t host_dispatch_table[] = {
     WT_DISPATCH_TABLE_FINAL,
 };
 
-wt_task_t * wt_rx1400_app_task_init(
-    wt_rx1400_app_task_t * const instance,
-    wthal_clock_t * const clock,
-    wthal_gpio_t * const activity_led,
-    wtapi_t * const xbee_api,
-    wtapi_t * const host_primary_api,
-    wtapi_t * const host_secondary_api,
-    wt_error_t * const error
-) {
-    bool ok = true;
 
-    ok = !ok ? ok : wt_task_init(&instance->task, wt_rx1400_app_task_main, instance, clock, error);
 
-    instance->activity_led = activity_led;
-    instance->xbee_api = xbee_api;
-    instance->host_primary_api = host_primary_api;
-    instance->host_secondary_api = host_secondary_api;
-        
-    return ok ? &instance->task : NULL;
-}
 
 static void device_reset(void * const context) {
     wthal_system_t * const system = context;
