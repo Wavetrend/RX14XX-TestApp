@@ -18,7 +18,7 @@
     The generated drivers are tested against the following:
         Compiler          :  XC16 v1.36b
         MPLAB 	          :  MPLAB X v5.25
-*/
+ */
 
 /*
     (c) 2019 Microchip Technology Inc. and its subsidiaries. You may use this
@@ -40,11 +40,11 @@
 
     MICROCHIP PROVIDES THIS SOFTWARE CONDITIONALLY UPON YOUR ACCEPTANCE OF THESE
     TERMS.
-*/
+ */
 
 /**
   Section: Included Files
-*/
+ */
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -79,77 +79,78 @@
 
 static wthal_uart_t * wthal_stdout_uart = NULL;
 
-int __attribute__ ( ( __section__(".libc.write" ) ) ) write(int handle, void * buffer, unsigned int len) {
-    if (wthal_stdout_uart != NULL) {
-        return (int) wthal_uart_write(wthal_stdout_uart, buffer, len, NULL);
-    }
-    return 0;
+int __attribute__((__section__(".libc.write"))) write(int handle, void * buffer, unsigned int len) {
+  if (wthal_stdout_uart != NULL) {
+      return (int) wthal_uart_write(wthal_stdout_uart, buffer, len, NULL);
+  }
+  return 0;
 }
 
 bool wthal_set_stdout(wthal_uart_t * const uart, wt_error_t * const error) {
-    wthal_stdout_uart = uart;
-    return true;
+  wthal_stdout_uart = uart;
+  return true;
 }
 
 ///////////////////////////////// WTIO_UART ///////////////////////////////////////
 
 typedef struct {
 
-    wtio_t wtio;
-    wthal_uart_t * uart;
-    
+  wtio_t impl;
+  wthal_uart_t * uart;
+
 } wtio_uart_t;
 
 static bool wtio_uart_open_impl(void * const context, wt_error_t * const error) {
-    wtio_uart_t * const instance = context;
-    return wthal_uart_open(instance->uart, error);
+  wtio_uart_t * const instance = context;
+  return wthal_uart_open(instance->uart, error);
 }
 
 static bool wtio_uart_close_impl(void * const context, wt_error_t * const error) {
-    wtio_uart_t * const instance = context;
-    return wthal_uart_close(instance->uart, error);
+  wtio_uart_t * const instance = context;
+  return wthal_uart_close(instance->uart, error);
 }
 
 static size_t wtio_uart_read_impl(void * const context, void * const data, size_t const size, wt_error_t * const error) {
-    wtio_uart_t * const instance = context;
-    return wthal_uart_read(instance->uart, data, size, error);
+  wtio_uart_t * const instance = context;
+  return wthal_uart_read(instance->uart, data, size, error);
 }
 
 static size_t wtio_uart_write_impl(void * const context, void const * const data, size_t const size, wt_error_t * const error) {
-    wtio_uart_t * const instance = context;
-    return wthal_uart_write(instance->uart, data, size, error);
+  wtio_uart_t * const instance = context;
+  return wthal_uart_write(instance->uart, data, size, error);
 }
 
 static bool wtio_uart_baudrate_impl(void * const context, uint32_t const baudrate, wt_error_t * const error) {
-    wtio_uart_t * const instance = context;
-    return wthal_uart_baudrate(instance->uart, baudrate, error);
+  wtio_uart_t * const instance = context;
+  return wthal_uart_baudrate(instance->uart, baudrate, error);
 }
 
 static bool wtio_uart_flowcontrol_impl(void * const context, bool const flowcontrol, wt_error_t * const error) {
-    wtio_uart_t * const instance = context;
-    return wthal_uart_flowcontrol(instance->uart, flowcontrol, error);
+  wtio_uart_t * const instance = context;
+  return wthal_uart_flowcontrol(instance->uart, flowcontrol, error);
 }
 
 wtio_t * wtio_uart_init(
-    wtio_uart_t * const instance,
-    wthal_uart_t * const uart,
-    wt_error_t * const error
+  wtio_uart_t * const instance,
+  wthal_uart_t * const uart,
+  wt_error_t * const error
 ) {
-    bool ok = true;
-   
-    ok = !ok ? ok : wt_assert_ptr(instance, error);
+  bool ok = true;
 
-    if (ok) {
-        instance->wtio.context = instance;
-        instance->wtio.open = wtio_uart_open_impl;
-        instance->wtio.close = wtio_uart_close_impl;
-        instance->wtio.read = wtio_uart_read_impl;
-        instance->wtio.write = wtio_uart_write_impl;
-        instance->wtio.baudrate = wtio_uart_baudrate_impl;
-        instance->wtio.flowcontrol = wtio_uart_flowcontrol_impl;
-    }
-    
-    return ok ? &instance->wtio : NULL;
+  ok = !ok ? ok : wt_assert_ptr(instance, error);
+
+  if (ok) {
+    instance->uart = uart;
+    instance->impl.context = instance;
+    instance->impl.open = wtio_uart_open_impl;
+    instance->impl.close = wtio_uart_close_impl;
+    instance->impl.read = wtio_uart_read_impl;
+    instance->impl.write = wtio_uart_write_impl;
+    instance->impl.baudrate = wtio_uart_baudrate_impl;
+    instance->impl.flowcontrol = wtio_uart_flowcontrol_impl;
+  }
+
+  return ok ? &instance->impl : NULL;
 }
 
 
@@ -183,123 +184,118 @@ WTHAL_SYSTEM_PIC24_DECLARE(wt_rx14xx_system);
 WTHAL_SYSTEM_PIC24_DEFINE(wt_rx14xx_system, RCON, ClrWdt(), Nop(), asm("reset"));
 
 typedef struct {
-    
-    wthal_system_t * system;
-    wthal_isr_t * t5_isr;
-    wthal_gpio_t * startup_led;
-    wthal_gpio_t * activity_led;
-    wthal_gpio_t * ethernet_reset;
-    wthal_timer_t * timer5;
-    wthal_counter_t * counter;
-    wthal_clock_t * clock;
-    wthal_uart_t * debug_uart;
-    wthal_uart_t * xbee_uart;
-    wthal_uart_t * primary_ethernet_uart;
-    wthal_uart_t * secondary_ethernet_uart;
-    
+
+  wthal_system_t * system;
+  wthal_isr_t * t5_isr;
+  wthal_gpio_t * startup_led;
+  wthal_gpio_t * activity_led;
+  wthal_gpio_t * ethernet_reset;
+  wthal_timer_t * timer5;
+  wthal_counter_t * counter;
+  wthal_clock_t * clock;
+  wthal_uart_t * debug_uart;
+  wthal_uart_t * xbee_uart;
+  wthal_uart_t * primary_ethernet_uart;
+  wthal_uart_t * secondary_ethernet_uart;
+
 } wt_hal_t;
 
 typedef struct {
-    
-    wt_hal_t hal;
-    
-    wthal_observer_t t5_observers[3];
-    
-    wt_rx14xx_system_t system;
 
-    wt_rx14xx_tmr5_t t5_isr;
-    wt_rx14xx_timer5_t timer5;
-    wthal_counter_t counter;
-    wt_rx1400_clock_t clock;
+  wt_hal_t hal;
 
-    wt_rx14xx_led1_t startup_led;
-    wt_rx14xx_led2_t activity_led;
+  wthal_observer_t t5_observers[3];
 
-    wt_rx14xx_xbee_uart_t xbee_uart;
+  wt_rx14xx_system_t system;
 
-    wt_rx14xx_debug_uart_t debug_uart;
+  wt_rx14xx_tmr5_t t5_isr;
+  wt_rx14xx_timer5_t timer5;
+  wthal_counter_t counter;
+  wt_rx1400_clock_t clock;
 
-    wt_rx1400_ethernet_reset_t ethernet_reset;
-    wt_rx14xx_primary_ethernet_uart_t primary_ethernet_uart;
-    wt_rx14xx_secondary_ethernet_uart_t secondary_ethernet_uart;
-    
+  wt_rx14xx_led1_t startup_led;
+  wt_rx14xx_led2_t activity_led;
+
+  wt_rx14xx_xbee_uart_t xbee_uart;
+
+  wt_rx14xx_debug_uart_t debug_uart;
+
+  wt_rx1400_ethernet_reset_t ethernet_reset;
+  wt_rx14xx_primary_ethernet_uart_t primary_ethernet_uart;
+  wt_rx14xx_secondary_ethernet_uart_t secondary_ethernet_uart;
+
 } wt_rx1400_hal_t;
 
 wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t * const error) {
-    
-    bool ok = true;
-    enum {
-        wt_rx1400_isr_priority_timer = 4,
-        wt_rx1400_isr_priority_debug_uart_tx = 4,
-        wt_rx1400_isr_priority_debug_uart_rx = 4,
-        wt_rx1400_isr_priority_debug_uart_err = 4,
-        wt_rx1400_isr_priority_xbee_uart_tx = 4,
-        wt_rx1400_isr_priority_xbee_uart_rx = 4,
-        wt_rx1400_isr_priority_xbee_uart_err = 4,
-        wt_rx1400_isr_priority_primary_ethernet_uart_tx = 4,
-        wt_rx1400_isr_priority_primary_ethernet_uart_rx = 4,
-        wt_rx1400_isr_priority_primary_ethernet_uart_err = 4,
-        wt_rx1400_isr_priority_secondary_ethernet_uart_tx = 4,
-        wt_rx1400_isr_priority_secondary_ethernet_uart_rx = 4,
-        wt_rx1400_isr_priority_secondary_ethernet_uart_err = 4,
-    };
-    
-    PPS_UNLOCK();
 
-    // UART 1 - XBEE
-    _U1RXR = 8;                 // UART1:U1RX->RP8/RB8
-    _RP9R = _RPOUT_U1TX;        // RP9/RB9->UART1:U1TX
-    _U1CTSR = 1;                // UART1:U1CTS->RP1/RB1
-    _RP0R = _RPOUT_U1RTS;       // RP0/RB0->UART1:U1RTS
+  bool ok = true;
 
-    // UART 2 - DEBUG
-    _U2RXR = 23;                // UART2:U2RX->RP23/RD2
-    _RP22R = _RPOUT_U2TX;       // RP22/RD3->UART2:U2TX
-    
-    // UART 3 - Primary Ethernet
-    _U3RXR = 4;                 // UART3:U3RX->RP4/RD9
-    _RP11R = _RPOUT_U3TX;       // RP11/RD0->UART3:U3TX
-    _U3CTSR = 12;               // UART3:U3CTS->RP12/RD11
-    _RP3R = _RPOUT_U3RTS;       // RP3/RD10->UART3:U3RTS
+  enum {
+    wt_rx1400_isr_priority_timer = 4,
+    wt_rx1400_isr_priority_debug_uart_tx = 4,
+    wt_rx1400_isr_priority_debug_uart_rx = 4,
+    wt_rx1400_isr_priority_debug_uart_err = 4,
+    wt_rx1400_isr_priority_xbee_uart_tx = 4,
+    wt_rx1400_isr_priority_xbee_uart_rx = 4,
+    wt_rx1400_isr_priority_xbee_uart_err = 4,
+    wt_rx1400_isr_priority_primary_ethernet_uart_tx = 4,
+    wt_rx1400_isr_priority_primary_ethernet_uart_rx = 4,
+    wt_rx1400_isr_priority_primary_ethernet_uart_err = 4,
+    wt_rx1400_isr_priority_secondary_ethernet_uart_tx = 4,
+    wt_rx1400_isr_priority_secondary_ethernet_uart_rx = 4,
+    wt_rx1400_isr_priority_secondary_ethernet_uart_err = 4,
+  };
 
-    // UART 4 - Secondary Ethernet
-    _U4RXR = 25;                // UART4:U4RX->RP25/RD4
-    _RP20R = _RPOUT_U4TX;       // RP20/RD5->UART4:U4TX
+  PPS_UNLOCK();
 
-    PPS_LOCK();
-    
-    ok = !ok ? ok : (instance->hal.system = wt_rx14xx_system_init(&instance->system, error)) != NULL;
+  // UART 1 - XBEE
+  _U1RXR = 8; // UART1:U1RX->RP8/RB8
+  _RP9R = _RPOUT_U1TX; // RP9/RB9->UART1:U1TX
+  _U1CTSR = 1; // UART1:U1CTS->RP1/RB1
+  _RP0R = _RPOUT_U1RTS; // RP0/RB0->UART1:U1RTS
 
-    ok = !ok ? ok : (instance->hal.t5_isr = wt_rx14xx_tmr5_init(&instance->t5_isr, wt_rx1400_isr_priority_timer, instance->t5_observers, sizeof(instance->t5_observers) / sizeof(instance->t5_observers[0]), error)) != NULL;
-    ok = !ok ? ok : (instance->hal.timer5 = wt_rx14xx_timer5_init(&instance->timer5, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.counter = wthal_counter_init(&instance->counter, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.clock = wt_rx1400_clock_init(&instance->clock, instance->hal.timer5, instance->hal.t5_isr, instance->hal.counter, 10, error)) != NULL;
+  // UART 2 - DEBUG
+  _U2RXR = 23; // UART2:U2RX->RP23/RD2
+  _RP22R = _RPOUT_U2TX; // RP22/RD3->UART2:U2TX
 
-    ok = !ok ? ok : (instance->hal.startup_led = wt_rx14xx_led1_init(&instance->startup_led, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_led2_init(&instance->activity_led, error)) != NULL;
+  // UART 3 - Primary Ethernet
+  _U3RXR = 4; // UART3:U3RX->RP4/RD9
+  _RP11R = _RPOUT_U3TX; // RP11/RD0->UART3:U3TX
+  _U3CTSR = 12; // UART3:U3CTS->RP12/RD11
+  _RP3R = _RPOUT_U3RTS; // RP3/RD10->UART3:U3RTS
 
-    ok = !ok ? ok : (instance->hal.xbee_uart = wt_rx14xx_xbee_uart_init(&instance->xbee_uart, 9600, true, wt_rx1400_isr_priority_xbee_uart_tx, wt_rx1400_isr_priority_xbee_uart_rx, wt_rx1400_isr_priority_xbee_uart_err, error)) != NULL;
+  // UART 4 - Secondary Ethernet
+  _U4RXR = 25; // UART4:U4RX->RP25/RD4
+  _RP20R = _RPOUT_U4TX; // RP20/RD5->UART4:U4TX
 
-    ok = !ok ? ok : (instance->hal.debug_uart = wt_rx14xx_debug_uart_init(&instance->debug_uart, 230400, true, wt_rx1400_isr_priority_debug_uart_tx, wt_rx1400_isr_priority_debug_uart_rx, wt_rx1400_isr_priority_debug_uart_err, error)) != NULL;
+  PPS_LOCK();
 
-    ok = !ok ? ok : (instance->hal.ethernet_reset = wt_rx1400_ethernet_reset_init(&instance->ethernet_reset, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.primary_ethernet_uart = wt_rx14xx_primary_ethernet_uart_init(&instance->primary_ethernet_uart, 115200, true, wt_rx1400_isr_priority_primary_ethernet_uart_tx, wt_rx1400_isr_priority_primary_ethernet_uart_rx, wt_rx1400_isr_priority_primary_ethernet_uart_err, error)) != NULL;
-    ok = !ok ? ok : (instance->hal.secondary_ethernet_uart = wt_rx14xx_secondary_ethernet_uart_init(&instance->secondary_ethernet_uart, 115200, true, wt_rx1400_isr_priority_secondary_ethernet_uart_tx, wt_rx1400_isr_priority_secondary_ethernet_uart_rx, wt_rx1400_isr_priority_secondary_ethernet_uart_err, error)) != NULL;
-    
-    ok = !ok ? ok : wthal_gpio_weak_pull_up(instance->hal.ethernet_reset, true, error);
-    
-    ok = !ok ? ok : wthal_uart_open(instance->hal.debug_uart, error);
-    ok = !ok ? ok : wthal_uart_open(instance->hal.xbee_uart, error);
-    ok = !ok ? ok : wthal_uart_open(instance->hal.primary_ethernet_uart, error);
-    ok = !ok ? ok : wthal_uart_open(instance->hal.secondary_ethernet_uart, error);
-    
-    ok = !ok ? ok : wthal_set_stdout(instance->hal.debug_uart, error);
-    
-    return ok ? &instance->hal : NULL;
-    
-}
+  ok = !ok ? ok : (instance->hal.system = wt_rx14xx_system_init(&instance->system, error)) != NULL;
 
-/////////////////////////////// APP_TASK //////////////////////////////////////
+  ok = !ok ? ok : (instance->hal.t5_isr = wt_rx14xx_tmr5_init(&instance->t5_isr, wt_rx1400_isr_priority_timer, instance->t5_observers, sizeof (instance->t5_observers) / sizeof (instance->t5_observers[0]), error)) != NULL;
+  ok = !ok ? ok : (instance->hal.timer5 = wt_rx14xx_timer5_init(&instance->timer5, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.counter = wthal_counter_init(&instance->counter, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.clock = wt_rx1400_clock_init(&instance->clock, instance->hal.timer5, instance->hal.t5_isr, instance->hal.counter, 10, error)) != NULL;
+
+  ok = !ok ? ok : (instance->hal.startup_led = wt_rx14xx_led1_init(&instance->startup_led, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_led2_init(&instance->activity_led, error)) != NULL;
+
+  ok = !ok ? ok : (instance->hal.xbee_uart = wt_rx14xx_xbee_uart_init(&instance->xbee_uart, 9600, true, wt_rx1400_isr_priority_xbee_uart_tx, wt_rx1400_isr_priority_xbee_uart_rx, wt_rx1400_isr_priority_xbee_uart_err, error)) != NULL;
+
+  ok = !ok ? ok : (instance->hal.debug_uart = wt_rx14xx_debug_uart_init(&instance->debug_uart, 230400, true, wt_rx1400_isr_priority_debug_uart_tx, wt_rx1400_isr_priority_debug_uart_rx, wt_rx1400_isr_priority_debug_uart_err, error)) != NULL;
+
+  ok = !ok ? ok : (instance->hal.ethernet_reset = wt_rx1400_ethernet_reset_init(&instance->ethernet_reset, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.primary_ethernet_uart = wt_rx14xx_primary_ethernet_uart_init(&instance->primary_ethernet_uart, 115200, true, wt_rx1400_isr_priority_primary_ethernet_uart_tx, wt_rx1400_isr_priority_primary_ethernet_uart_rx, wt_rx1400_isr_priority_primary_ethernet_uart_err, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.secondary_ethernet_uart = wt_rx14xx_secondary_ethernet_uart_init(&instance->secondary_ethernet_uart, 115200, false, wt_rx1400_isr_priority_secondary_ethernet_uart_tx, wt_rx1400_isr_priority_secondary_ethernet_uart_rx, wt_rx1400_isr_priority_secondary_ethernet_uart_err, error)) != NULL;
+
+  ok = !ok ? ok : wthal_gpio_weak_pull_up(instance->hal.ethernet_reset, true, error);
+  ok = !ok ? ok : wthal_gpio_set(instance->hal.ethernet_reset, true, error);
+
+  ok = !ok ? ok : wthal_uart_open(instance->hal.debug_uart, error);
+
+  ok = !ok ? ok : wthal_set_stdout(instance->hal.debug_uart, error);
+
+  return ok ? &instance->hal : NULL;
 
 }
 
@@ -315,19 +311,19 @@ static bool is_xbee_receive_packet(
   void * const context,
   wt_error_t * const error
 ) {
-  return *((wtapi_xbee_frame_type_t *)data) == WTAPI_XBEE_FRAME_TYPE_RECEIVE_PACKET;
+  return *((wtapi_xbee_frame_type_t *) data) == WTAPI_XBEE_FRAME_TYPE_RECEIVE_PACKET;
 }
 
 static void xbee_packet_handler(
   void const * const data,
   size_t const size,
-  void * const context, 
+  void * const context,
   wt_error_t * const error
 ) {
 #ifndef DISABLE_XBEE_PACKET_HANDLER
   wtapi_xbee_receive_packet_t packet;
-  wtapi_xbee_receive_packet_init_from_data(&packet, ((uint8_t *)data), size, error);
-//  debug_dump(WT_RX1410_DEBUG_MESH_TASK, "DT <<", packet.header.data, packet.size);
+  wtapi_xbee_receive_packet_init_from_data(&packet, ((uint8_t *) data), size, error);
+  //  debug_dump(WT_RX1410_DEBUG_MESH_TASK, "DT <<", packet.header.data, packet.size);
   wtapi_dispatch(xbee_opcode_dispatch_table, &packet.header.fields.address, packet.header.data, packet.size, context, error);
 #endif
 }
@@ -335,12 +331,12 @@ static void xbee_packet_handler(
 ////////////////////////////// HOST DISPATCH //////////////////////////////////
 
 static wtapi_dispatch_entry_t host_opcode_dispatch_table[] = {
-    WTAPI_DISPATCH_ENTRY_FINAL,
+  WTAPI_DISPATCH_ENTRY_FINAL,
 };
 
 static wt_dispatch_entry_t xbee_dispatch_table[] = {
-    { is_xbee_receive_packet, xbee_packet_handler },
-    WT_DISPATCH_TABLE_FINAL,
+  { is_xbee_receive_packet, xbee_packet_handler},
+  WT_DISPATCH_TABLE_FINAL,
 };
 
 static bool is_host_receive_packet(
@@ -349,7 +345,7 @@ static bool is_host_receive_packet(
   void * const context,
   wt_error_t * const error
 ) {
-  return true;
+    return true;
 }
 
 static void host_packet_handler(
@@ -360,87 +356,88 @@ static void host_packet_handler(
 ) {
 #ifndef DISABLE_HOST_PACKET_HANDLER
   wtapi_host_frame_t const * const frame = data;
-  uint8_t buffer[WTAPI_HOST_FRAME_DATA_MAX+1U];
+  uint8_t buffer[WTAPI_HOST_FRAME_DATA_MAX + 1U];
   buffer[0] = frame->opcode;
-  size_t length = frame->length-sizeof(wtapi_address_t);
+  size_t length = frame->length - sizeof (wtapi_address_t);
   memcpy(&buffer[1], frame->data, length);
   wtapi_dispatch(host_opcode_dispatch_table, &frame->address, buffer, length, context, error);
 #endif
 }
 
 static wt_dispatch_entry_t host_dispatch_table[] = {
-    { is_host_receive_packet, host_packet_handler },
-    WT_DISPATCH_TABLE_FINAL,
+  { is_host_receive_packet, host_packet_handler},
+  WT_DISPATCH_TABLE_FINAL,
 };
 
-
-
-
 static void device_reset(void * const context) {
-    wthal_system_t * const system = context;
-    (void)wthal_system_reset(system, NULL);
+  wthal_system_t * const system = context;
+  (void) wthal_system_reset(system, NULL);
 }
 
-int main(void)
-{
-    wt_error_t error;
-    
-    // initialize the device - MUST COME FIRST OR WILL OVERRIDE HAL STYLE CONFIG
-    SYSTEM_Initialize();
+int main(void) {
+  wt_error_t error;
 
-    bool ok = true;
-    
-    ok = !ok ? ok : wt_error_init(&error);
-    
-    // HAL
-    wt_rx1400_hal_t rx1400_hal;
-    wt_hal_t * hal = ok ? wt_rx1400_hal_init(&rx1400_hal, &error) : NULL;
-    ok = (hal != NULL);
-    
-    // XBEE API
-    wtio_uart_t xbee_uart;
-    wtapi_xbee_t xbee_impl;
-    wtapi_t xbee_api;
-    
-    ok = !ok ? ok : (wtio_uart_init(&xbee_uart, hal->xbee_uart, &error) != NULL);
-    ok = !ok ? ok : wtapi_xbee_init(&xbee_impl, xbee_dispatch_table, NULL, &xbee_uart.wtio, 0, 0, hal->clock, &error);
-    ok = !ok ? ok : wtapi_init(&xbee_api, &xbee_uart, &xbee_impl.impl, hal->clock, &error);
-    
-    // HOST PRIMARY API
-    wtio_uart_t host_primary_uart;
-    wtapi_host_t host_primary_impl;
-    wtapi_t host_primary_api;
+  // initialize the device - MUST COME FIRST OR WILL OVERRIDE HAL STYLE CONFIG
+  SYSTEM_Initialize();
 
-    ok = !ok ? ok : (wtio_uart_init(&host_primary_uart, hal->primary_ethernet_uart, &error) != NULL);
-    ok = !ok ? ok : wtapi_host_init(&host_primary_impl, host_dispatch_table, NULL, &host_primary_uart.wtio, &error);
-    ok = !ok ? ok : wtapi_init(&host_primary_api, &host_primary_uart, &host_primary_impl.impl, hal->clock, &error);
-    
-    // HOST SECONDARY API
-    wtio_uart_t host_secondary_uart;
-    wtapi_host_t host_secondary_impl;
-    wtapi_t host_secondary_api;
-    
-    ok = !ok ? ok : (wtio_uart_init(&host_secondary_uart, hal->primary_ethernet_uart, &error) != NULL);
-    ok = !ok ? ok : wtapi_host_init(&host_secondary_impl, host_dispatch_table, NULL, &host_secondary_uart.wtio, &error);
-    ok = !ok ? ok : wtapi_init(&host_secondary_api, &host_secondary_uart, &host_secondary_impl.impl, hal->clock, &error);
+  bool ok = true;
 
-    wt_rx1400_app_task_t app;
-    
-    ok = (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, &xbee_api, &host_primary_api, &host_secondary_api, &error) != NULL);
-    
-    while (ok && wt_task_incomplete(&app.task)) {
-        ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
-        ok = !ok ? ok : wt_task_spin(&app.task, &error);
-        if (!ok) {
-            ok = wthal_clock_set_alarm(hal->clock, device_reset, hal->system, 3000, &error);
-        }
-        wthal_system_nop(hal->system, &error);
+  ok = !ok ? ok : wt_error_init(&error);
+
+  // HAL
+  wt_rx1400_hal_t rx1400_hal;
+  wt_hal_t * hal = ok ? wt_rx1400_hal_init(&rx1400_hal, &error) : NULL;
+  ok = (hal != NULL);
+
+  // XBEE API
+  wtio_uart_t xbee_uart;
+  wtapi_xbee_t xbee_proto;
+  wtapi_t xbee_api;
+
+  ok = !ok ? ok : (wtio_uart_init(&xbee_uart, hal->xbee_uart, &error) != NULL);
+  ok = !ok ? ok : wtapi_xbee_init(&xbee_proto, xbee_dispatch_table, NULL, &xbee_uart.impl, 0, 0, hal->clock, &error);
+  ok = !ok ? ok : wtapi_init(&xbee_api, &xbee_proto, &xbee_proto.impl, hal->clock, &error);
+  ok = !ok ? ok : wtapi_open(&xbee_api, &error);
+
+  // HOST PRIMARY API
+  wtio_uart_t host_primary_uart;
+  wtapi_host_t host_primary_proto;
+  wtapi_t host_primary_api;
+
+  ok = !ok ? ok : (wtio_uart_init(&host_primary_uart, hal->primary_ethernet_uart, &error) != NULL);
+  ok = !ok ? ok : wtapi_host_init(&host_primary_proto, host_dispatch_table, NULL, &host_primary_uart.impl, &error);
+  ok = !ok ? ok : wtapi_init(&host_primary_api, &host_primary_proto, &host_primary_proto.impl, hal->clock, &error);
+  ok = !ok ? ok : wtapi_open(&host_primary_api, &error);
+
+  // HOST SECONDARY API
+  wtio_uart_t host_secondary_uart;
+  wtapi_host_t host_secondary_proto;
+  wtapi_t host_secondary_api;
+
+  ok = !ok ? ok : (wtio_uart_init(&host_secondary_uart, hal->secondary_ethernet_uart, &error) != NULL);
+  ok = !ok ? ok : wtapi_host_init(&host_secondary_proto, host_dispatch_table, NULL, &host_secondary_uart.impl, &error);
+  ok = !ok ? ok : wtapi_init(&host_secondary_api, &host_secondary_proto, &host_secondary_proto.impl, hal->clock, &error);
+  ok = !ok ? ok : wtapi_open(&host_secondary_api, &error);
+
+  wt_rx1400_app_task_t app;
+
+  ok = (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, &xbee_api, &host_primary_api, &host_secondary_api, &error) != NULL);
+
+  while (ok && wt_task_incomplete(&app.task)) {
+    ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
+    ok = !ok ? ok : wt_task_spin(&app.task, &error);
+    if (!ok && !error.acknowledged) {
+      printf("\nERROR %d, File:%s, Line:%d", error.error_code, error.file, error.line);
+      error.acknowledged = true;
+      ok = wthal_clock_set_alarm(hal->clock, device_reset, hal->system, 3000, &error);
     }
-    
-    return error.error_code;
+    wthal_system_nop(hal->system, &error);
+  }
+
+  return error.error_code;
 
 }
 /**
  End of File
-*/
+ */
 
