@@ -421,7 +421,7 @@ int main(void) {
 
   wt_rx1400_app_task_t app;
 
-  ok = (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, &xbee_api, &host_primary_api, &host_secondary_api, &error) != NULL);
+  ok = (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, &xbee_api, &host_primary_api, &host_secondary_api, &error) != NULL);
 
   while (ok && wt_task_incomplete(&app.task)) {
     ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
