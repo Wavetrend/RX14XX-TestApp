@@ -70,26 +70,11 @@
 #include "wthal_uart_pic24.h"
 #include "wt_rx1400_app_task.h"
 #include "wt_rx1400_clock.h"
+#include "wt_rx14xx_debug.h"
 
 /*
                          Main application
  */
-
-//////////////////////////////// STDOUT ///////////////////////////////////////
-
-static wthal_uart_t * wthal_stdout_uart = NULL;
-
-int __attribute__((__section__(".libc.write"))) write(int handle, void * buffer, unsigned int len) {
-  if (wthal_stdout_uart != NULL) {
-      return (int) wthal_uart_write(wthal_stdout_uart, buffer, len, NULL);
-  }
-  return 0;
-}
-
-bool wthal_set_stdout(wthal_uart_t * const uart, wt_error_t * const error) {
-  wthal_stdout_uart = uart;
-  return true;
-}
 
 ///////////////////////////////// WTIO_UART ///////////////////////////////////////
 
@@ -298,8 +283,6 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
 
   ok = !ok ? ok : wthal_uart_open(instance->hal.debug_uart, error);
 
-  ok = !ok ? ok : wthal_set_stdout(instance->hal.debug_uart, error);
-
   return ok ? &instance->hal : NULL;
 
 }
@@ -425,8 +408,12 @@ int main(void) {
   ok = !ok ? ok : wtapi_open(&host_secondary_api, &error);
 
   wt_rx1400_app_task_t app;
-
-  ok = (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, &xbee_api, &host_primary_api, &host_secondary_api, &error) != NULL);
+  wt_rx14xx_debug_t rx14xx_debug;
+  wt_debug_t * debug;
+  
+  ok = !ok ? ok : ((debug = wt_rx14xx_debug_init(&rx14xx_debug, hal->debug_uart, hal->clock, &error)) != NULL);
+  
+  ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, &xbee_api, &host_primary_api, &host_secondary_api, debug, &error) != NULL);
 
   while (ok && wt_task_incomplete(&app.task)) {
     ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
