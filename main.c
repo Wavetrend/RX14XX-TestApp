@@ -82,42 +82,77 @@ typedef struct {
 
   wtio_t impl;
   wthal_uart_t * uart;
+  
+  wt_debug_t * debug;
+  wt_module_debug_t module_debug;
+  char const * debug_prefix;
 
 } wtio_uart_t;
 
 static bool wtio_uart_open_impl(void * const context, wt_error_t * const error) {
   wtio_uart_t * const instance = context;
-  return wthal_uart_open(instance->uart, error);
+  bool ok = wthal_uart_open(instance->uart, error);
+  if (ok) {
+    wt_debug_print(instance->debug, "%s Open", instance->debug_prefix);
+  }
+  return ok;
 }
 
 static bool wtio_uart_close_impl(void * const context, wt_error_t * const error) {
   wtio_uart_t * const instance = context;
-  return wthal_uart_close(instance->uart, error);
+  bool ok = wthal_uart_close(instance->uart, error);
+  if (ok) {
+    wt_debug_print(instance->debug, "%s Close", instance->debug_prefix);
+  }
+  return ok;
 }
 
 static size_t wtio_uart_read_impl(void * const context, void * const data, size_t const size, wt_error_t * const error) {
   wtio_uart_t * const instance = context;
-  return wthal_uart_read(instance->uart, data, size, error);
+  size_t read = wthal_uart_read(instance->uart, data, size, error);
+  if (read > 0) {
+    char msg[16];
+    sprintf(msg, "%.13s<<", instance->debug_prefix);
+    wt_debug_dump(instance->debug, msg, data, size);
+  }
+  return read;
 }
 
 static size_t wtio_uart_write_impl(void * const context, void const * const data, size_t const size, wt_error_t * const error) {
   wtio_uart_t * const instance = context;
-  return wthal_uart_write(instance->uart, data, size, error);
+  size_t written = wthal_uart_write(instance->uart, data, size, error);
+  if (written > 0) {
+    char msg[16];
+    sprintf(msg, "%.13s>>", instance->debug_prefix);
+    wt_debug_dump(instance->debug, msg, data, size);
+  }
+  return written;
 }
 
 static bool wtio_uart_baudrate_impl(void * const context, uint32_t const baudrate, wt_error_t * const error) {
   wtio_uart_t * const instance = context;
-  return wthal_uart_baudrate(instance->uart, baudrate, error);
+  bool ok = wthal_uart_baudrate(instance->uart, baudrate, error);
+  if (ok) {
+    wt_debug_print(instance->debug, "%s baudrate=%lu", instance->debug_prefix, baudrate);
+  }
+  return ok;
 }
 
 static bool wtio_uart_flowcontrol_impl(void * const context, bool const flowcontrol, wt_error_t * const error) {
   wtio_uart_t * const instance = context;
-  return wthal_uart_flowcontrol(instance->uart, flowcontrol, error);
+  bool ok = wthal_uart_flowcontrol(instance->uart, flowcontrol, error);
+  if (ok) {
+    wt_debug_print(instance->debug, "%s flowcontrol=%d", instance->debug_prefix, flowcontrol);
+  }
+  return ok;
 }
 
 wtio_t * wtio_uart_init(
   wtio_uart_t * const instance,
   wthal_uart_t * const uart,
+  wt_debug_t * const debug,
+  uint32_t const debug_module,
+  char const * debug_prefix,
   wt_error_t * const error
 ) {
   bool ok = true;
@@ -126,6 +161,9 @@ wtio_t * wtio_uart_init(
 
   if (ok) {
     instance->uart = uart;
+    
+    instance->debug_prefix = debug_prefix;
+    instance->debug = wt_module_debug_init(&instance->module_debug, debug_module, &wt_module_debug_impl, debug, error);
     instance->impl.context = instance;
     instance->impl.open = wtio_uart_open_impl;
     instance->impl.close = wtio_uart_close_impl;
@@ -135,6 +173,8 @@ wtio_t * wtio_uart_init(
     instance->impl.flowcontrol = wtio_uart_flowcontrol_impl;
   }
 
+  ok = !ok ? ok : wt_assert_ptr(instance->debug, error);
+  
   return ok ? &instance->impl : NULL;
 }
 
@@ -377,47 +417,46 @@ int main(void) {
   wt_hal_t * hal = ok ? wt_rx1400_hal_init(&rx1400_hal, &error) : NULL;
   ok = (hal != NULL);
 
+  // DEBUG
+  wt_rx14xx_debug_t rx14xx_debug;
+  wt_debug_t * debug;  
+  ok = !ok ? ok : ((debug = wt_rx14xx_debug_init(&rx14xx_debug, hal->debug_uart, hal->clock, &error)) != NULL);
+
   // XBEE API
   wtio_uart_t xbee_uart;
   wtapi_xbee_t xbee_proto;
   wtapi_t xbee_api;
 
-  ok = !ok ? ok : (wtio_uart_init(&xbee_uart, hal->xbee_uart, &error) != NULL);
+  ok = !ok ? ok : (wtio_uart_init(&xbee_uart, hal->xbee_uart, debug, 1, "XB", &error) != NULL);
   ok = !ok ? ok : wtapi_xbee_init(&xbee_proto, xbee_dispatch_table, NULL, &xbee_uart.impl, 0, 0, hal->clock, &error);
   ok = !ok ? ok : wtapi_init(&xbee_api, &xbee_proto, &xbee_proto.impl, hal->clock, &error);
-  ok = !ok ? ok : wtapi_open(&xbee_api, &error);
 
   // HOST PRIMARY API
   wtio_uart_t host_primary_uart;
   wtapi_host_t host_primary_proto;
   wtapi_t host_primary_api;
 
-  ok = !ok ? ok : (wtio_uart_init(&host_primary_uart, hal->primary_ethernet_uart, &error) != NULL);
+  ok = !ok ? ok : (wtio_uart_init(&host_primary_uart, hal->primary_ethernet_uart, debug, 1, "E1", &error) != NULL);
   ok = !ok ? ok : wtapi_host_init(&host_primary_proto, host_dispatch_table, NULL, &host_primary_uart.impl, &error);
   ok = !ok ? ok : wtapi_init(&host_primary_api, &host_primary_proto, &host_primary_proto.impl, hal->clock, &error);
-  ok = !ok ? ok : wtapi_open(&host_primary_api, &error);
 
   // HOST SECONDARY API
   wtio_uart_t host_secondary_uart;
   wtapi_host_t host_secondary_proto;
   wtapi_t host_secondary_api;
 
-  ok = !ok ? ok : (wtio_uart_init(&host_secondary_uart, hal->secondary_ethernet_uart, &error) != NULL);
+  ok = !ok ? ok : (wtio_uart_init(&host_secondary_uart, hal->secondary_ethernet_uart, debug, 1, "E2", &error) != NULL);
   ok = !ok ? ok : wtapi_host_init(&host_secondary_proto, host_dispatch_table, NULL, &host_secondary_uart.impl, &error);
   ok = !ok ? ok : wtapi_init(&host_secondary_api, &host_secondary_proto, &host_secondary_proto.impl, hal->clock, &error);
-  ok = !ok ? ok : wtapi_open(&host_secondary_api, &error);
 
   wt_rx1400_app_task_t app;
-  wt_rx14xx_debug_t rx14xx_debug;
-  wt_debug_t * debug;
-  
-  ok = !ok ? ok : ((debug = wt_rx14xx_debug_init(&rx14xx_debug, hal->debug_uart, hal->clock, &error)) != NULL);
   
   ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, &xbee_api, &host_primary_api, &host_secondary_api, debug, &error) != NULL);
 
   while (ok && wt_task_incomplete(&app.task)) {
     ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
     ok = !ok ? ok : wt_task_spin(&app.task, &error);
+    
     if (!ok && !error.acknowledged) {
       printf("\nERROR %d, File:%s, Line:%d", error.error_code, error.file, error.line);
       error.acknowledged = true;
