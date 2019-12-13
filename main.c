@@ -422,6 +422,10 @@ int main(void) {
   wt_debug_t * debug;  
   ok = !ok ? ok : ((debug = wt_rx14xx_debug_init(&rx14xx_debug, hal->debug_uart, hal->clock, &error)) != NULL);
 
+  if (ok) {
+    wt_debug_print(debug, "============================= STARTUP ===========================");
+  }
+  
   // XBEE API
   wtio_uart_t xbee_uart;
   wtapi_xbee_t xbee_proto;
@@ -451,7 +455,7 @@ int main(void) {
 
   wt_rx1400_app_task_t app;
   
-  ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, &xbee_api, &host_primary_api, &host_secondary_api, debug, &error) != NULL);
+  ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, hal->xbee_reset, &xbee_api, &host_primary_api, &host_secondary_api, debug, &error) != NULL);
 
   while (ok && wt_task_incomplete(&app.task)) {
     ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
