@@ -280,8 +280,8 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   // UART 1 - XBEE
   _U1RXR = 8; // UART1:U1RX->RP8/RB8
   _RP9R = _RPOUT_U1TX; // RP9/RB9->UART1:U1TX
-  _U1CTSR = 1; // UART1:U1CTS->RP1/RB1
-  _RP0R = _RPOUT_U1RTS; // RP0/RB0->UART1:U1RTS
+  _U1CTSR = 0; // UART1:U1CTS->RP0/RB0
+  _RP1R = _RPOUT_U1RTS; // RP1/RB1->UART1:U1RTS
 
   // UART 2 - DEBUG
   _U2RXR = 23; // UART2:U2RX->RP23/RD2
