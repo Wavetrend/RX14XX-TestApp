@@ -282,7 +282,9 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   _RP9R = _RPOUT_U1TX; // RP9/RB9->UART1:U1TX
   _U1CTSR = 0; // UART1:U1CTS->RP0/RB0
   _RP1R = _RPOUT_U1RTS; // RP1/RB1->UART1:U1RTS
-
+  _LATB0 = 1;
+  _LATB1 = 1;
+  
   // UART 2 - DEBUG
   _U2RXR = 23; // UART2:U2RX->RP23/RD2
   _RP22R = _RPOUT_U2TX; // RP22/RD3->UART2:U2TX
@@ -292,6 +294,8 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   _RP11R = _RPOUT_U3TX; // RP11/RD0->UART3:U3TX
   _U3CTSR = 12; // UART3:U3CTS->RP12/RD11
   _RP3R = _RPOUT_U3RTS; // RP3/RD10->UART3:U3RTS
+  _LATD10 = 1;
+  _LATD11 = 1;
 
   // UART 4 - Secondary Ethernet
   _U4RXR = 25; // UART4:U4RX->RP25/RD4
