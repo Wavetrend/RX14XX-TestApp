@@ -113,7 +113,7 @@ static size_t wtio_uart_read_impl(void * const context, void * const data, size_
   if (read > 0) {
     char msg[16];
     sprintf(msg, "%.13s<<", instance->debug_prefix);
-    wt_debug_dump(instance->debug, msg, data, size);
+    wt_debug_dump(instance->debug, msg, data, read);
   }
   return read;
 }
@@ -124,7 +124,7 @@ static size_t wtio_uart_write_impl(void * const context, void const * const data
   if (written > 0) {
     char msg[16];
     sprintf(msg, "%.13s>>", instance->debug_prefix);
-    wt_debug_dump(instance->debug, msg, data, size);
+    wt_debug_dump(instance->debug, msg, data, written);
   }
   return written;
 }
