@@ -446,76 +446,6 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
 
 }
 
-////////////////////////////// XBEE DISPATCH //////////////////////////////////
-
-static wtapi_dispatch_entry_t xbee_opcode_dispatch_table[] = {
-    WTAPI_DISPATCH_ENTRY_FINAL,
-};
-
-static bool is_xbee_receive_packet(
-  void const * const data,
-  size_t const size,
-  void * const context,
-  wt_error_t * const error
-) {
-  return *((wtapi_xbee_frame_type_t *) data) == WTAPI_XBEE_FRAME_TYPE_RECEIVE_PACKET;
-}
-
-static void xbee_packet_handler(
-  void const * const data,
-  size_t const size,
-  void * const context,
-  wt_error_t * const error
-) {
-#ifndef DISABLE_XBEE_PACKET_HANDLER
-  wtapi_xbee_receive_packet_t packet;
-  wtapi_xbee_receive_packet_init_from_data(&packet, ((uint8_t *) data), size, error);
-  //  debug_dump(WT_RX1410_DEBUG_MESH_TASK, "DT <<", packet.header.data, packet.size);
-  wtapi_dispatch(xbee_opcode_dispatch_table, &packet.header.fields.address, packet.header.data, packet.size, context, error);
-#endif
-}
-
-////////////////////////////// HOST DISPATCH //////////////////////////////////
-
-static wtapi_dispatch_entry_t host_opcode_dispatch_table[] = {
-  WTAPI_DISPATCH_ENTRY_FINAL,
-};
-
-static wt_dispatch_entry_t xbee_dispatch_table[] = {
-  { is_xbee_receive_packet, xbee_packet_handler},
-  WT_DISPATCH_TABLE_FINAL,
-};
-
-static bool is_host_receive_packet(
-  void const * const data,
-  size_t const size,
-  void * const context,
-  wt_error_t * const error
-) {
-    return true;
-}
-
-static void host_packet_handler(
-  void const * const data,
-  size_t const size,
-  void * const context,
-  wt_error_t * const error
-) {
-#ifndef DISABLE_HOST_PACKET_HANDLER
-  wtapi_host_frame_t const * const frame = data;
-  uint8_t buffer[WTAPI_HOST_FRAME_DATA_MAX + 1U];
-  buffer[0] = frame->opcode;
-  size_t length = frame->length - sizeof (wtapi_address_t);
-  memcpy(&buffer[1], frame->data, length);
-  wtapi_dispatch(host_opcode_dispatch_table, &frame->address, buffer, length, context, error);
-#endif
-}
-
-static wt_dispatch_entry_t host_dispatch_table[] = {
-  { is_host_receive_packet, host_packet_handler},
-  WT_DISPATCH_TABLE_FINAL,
-};
-
 static void device_reset(void * const context) {
   wthal_system_t * const system = context;
   (void) wthal_system_reset(system, NULL);
@@ -551,7 +481,7 @@ int main(void) {
   wtapi_t xbee_api;
 
   ok = !ok ? ok : (wtio_uart_init(&xbee_uart, hal->xbee_uart, debug, 1, "XB", &error) != NULL);
-  ok = !ok ? ok : wtapi_xbee_init(&xbee_proto, xbee_dispatch_table, NULL, &xbee_uart.impl, 0, 0, hal->clock, &error);
+  ok = !ok ? ok : wtapi_xbee_init(&xbee_proto, NULL, NULL, &xbee_uart.impl, 0, 0, hal->clock, &error);
   ok = !ok ? ok : wtapi_init(&xbee_api, &xbee_proto, &xbee_proto.impl, hal->clock, &error);
 
   // HOST PRIMARY API
@@ -560,7 +490,7 @@ int main(void) {
   wtapi_t host_primary_api;
 
   ok = !ok ? ok : (wtio_uart_init(&host_primary_uart, hal->primary_ethernet_uart, debug, 1, "E1", &error) != NULL);
-  ok = !ok ? ok : wtapi_host_init(&host_primary_proto, host_dispatch_table, NULL, &host_primary_uart.impl, &error);
+  ok = !ok ? ok : wtapi_host_init(&host_primary_proto, NULL, NULL, &host_primary_uart.impl, &error);
   ok = !ok ? ok : wtapi_init(&host_primary_api, &host_primary_proto, &host_primary_proto.impl, hal->clock, &error);
 
   // HOST SECONDARY API
@@ -569,7 +499,7 @@ int main(void) {
   wtapi_t host_secondary_api;
 
   ok = !ok ? ok : (wtio_uart_init(&host_secondary_uart, hal->secondary_ethernet_uart, debug, 1, "E2", &error) != NULL);
-  ok = !ok ? ok : wtapi_host_init(&host_secondary_proto, host_dispatch_table, NULL, &host_secondary_uart.impl, &error);
+  ok = !ok ? ok : wtapi_host_init(&host_secondary_proto, NULL, NULL, &host_secondary_uart.impl, &error);
   ok = !ok ? ok : wtapi_init(&host_secondary_api, &host_secondary_proto, &host_secondary_proto.impl, hal->clock, &error);
 
   wt_rx1400_app_task_t app;
