@@ -195,10 +195,42 @@ WTHAL_UART_PIC24_DECLARE(wt_rx14xx_primary_ethernet_uart);
 WTHAL_UART_PIC24_DEFINE(wt_rx14xx_primary_ethernet_uart, 3, XTAL);
 WTHAL_UART_PIC24_DECLARE(wt_rx14xx_secondary_ethernet_uart);
 WTHAL_UART_PIC24_DEFINE(wt_rx14xx_secondary_ethernet_uart, 4, XTAL);
+
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_xbee_cts);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_xbee_cts, _RB0, _TRISB0, _LATB0, _ANSB0, _CN2PUE, _CN2PDE, _ODB0);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_xbee_rts);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_xbee_rts, _RB1, _TRISB1, _LATB1, _ANSB1, _CN3PUE, _CN3PDE, _ODB1);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_xbee_tx);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_xbee_tx, _RB9, _TRISB9, _LATB9, _ANSB9, _CN27PUE, _CN27PDE, _ODB9);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_xbee_rx);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_xbee_rx, _RB8, _TRISB8, _LATB8, _ANSB8, _CN26PUE, _CN26PDE, _ODB8);
+
+static bool no_analogue;
+
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_debug_tx);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_debug_tx, _RD3, _TRISD3, _LATD3, no_analogue, _CN52PUE, _CN52PDE, _ODD3);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_debug_rx);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_debug_rx, _RD2, _TRISD2, _LATD2, no_analogue, _CN51PUE, _CN51PDE, _ODD2);
+
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_ethernet_primary_cts);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_ethernet_primary_cts, _RD11, _TRISD11, _LATD11, no_analogue, _CN56PUE, _CN56PDE, _ODD11);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_ethernet_primary_rts);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_ethernet_primary_rts, _RD10, _TRISD10, _LATD10, no_analogue, _CN55PUE, _CN55PDE, _ODD10);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_ethernet_primary_tx);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_ethernet_primary_tx, _RD0, _TRISD0, _LATD0, no_analogue, _CN49PUE, _CN49PDE, _ODD0);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_ethernet_primary_rx);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_ethernet_primary_rx, _RD9, _TRISD9, _LATD9, no_analogue, _CN54PUE, _CN54PDE, _ODD9);
+
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_ethernet_secondary_tx);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_ethernet_secondary_tx, _RD5, _TRISD5, _LATD5, no_analogue, _CN14PUE, _CN14PDE, _ODD5);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_ethernet_secondary_rx);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_ethernet_secondary_rx, _RD4, _TRISD4, _LATD4, no_analogue, _CN13PUE, _CN13PDE, _ODD4);
+
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_led1);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7);
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_led2);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6);
+
 WTHAL_GPIO_PIC24_DECLARE(wt_rx1400_ethernet_reset);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx1400_ethernet_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_xbee_reset);
@@ -218,6 +250,18 @@ typedef struct {
   wthal_gpio_t * activity_led;
   wthal_gpio_t * ethernet_reset;
   wthal_gpio_t * xbee_reset;
+  wthal_gpio_t * xbee_cts;
+  wthal_gpio_t * xbee_rts;
+  wthal_gpio_t * xbee_tx;
+  wthal_gpio_t * xbee_rx;
+  wthal_gpio_t * debug_tx;
+  wthal_gpio_t * debug_rx;
+  wthal_gpio_t * ethernet_primary_cts;
+  wthal_gpio_t * ethernet_primary_rts;
+  wthal_gpio_t * ethernet_primary_tx;
+  wthal_gpio_t * ethernet_primary_rx;
+  wthal_gpio_t * ethernet_secondary_tx;
+  wthal_gpio_t * ethernet_secondary_rx;
   wthal_timer_t * timer5;
   wthal_counter_t * counter;
   wthal_clock_t * clock;
@@ -245,11 +289,25 @@ typedef struct {
   wt_rx14xx_led2_t activity_led;
 
   wt_rx14xx_xbee_reset_t xbee_reset;
+  wt_rx14xx_xbee_cts_t xbee_cts;
+  wt_rx14xx_xbee_rts_t xbee_rts;
+  wt_rx14xx_xbee_tx_t xbee_tx;
+  wt_rx14xx_xbee_rx_t xbee_rx;
   wt_rx14xx_xbee_uart_t xbee_uart;
 
+  wt_rx14xx_debug_tx_t debug_tx;
+  wt_rx14xx_debug_rx_t debug_rx;
   wt_rx14xx_debug_uart_t debug_uart;
 
   wt_rx1400_ethernet_reset_t ethernet_reset;
+  wt_rx14xx_ethernet_primary_cts_t ethernet_primary_cts;
+  wt_rx14xx_ethernet_primary_rts_t ethernet_primary_rts;
+  wt_rx14xx_ethernet_primary_tx_t ethernet_primary_tx;
+  wt_rx14xx_ethernet_primary_rx_t ethernet_primary_rx;
+
+  wt_rx14xx_ethernet_secondary_tx_t ethernet_secondary_tx;
+  wt_rx14xx_ethernet_secondary_rx_t ethernet_secondary_rx;
+
   wt_rx14xx_primary_ethernet_uart_t primary_ethernet_uart;
   wt_rx14xx_secondary_ethernet_uart_t secondary_ethernet_uart;
 
@@ -282,8 +340,6 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   _RP9R = _RPOUT_U1TX; // RP9/RB9->UART1:U1TX
   _U1CTSR = 0; // UART1:U1CTS->RP0/RB0
   _RP1R = _RPOUT_U1RTS; // RP1/RB1->UART1:U1RTS
-  _LATB0 = 1;
-  _LATB1 = 1;
   
   // UART 2 - DEBUG
   _U2RXR = 23; // UART2:U2RX->RP23/RD2
@@ -294,8 +350,6 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   _RP11R = _RPOUT_U3TX; // RP11/RD0->UART3:U3TX
   _U3CTSR = 12; // UART3:U3CTS->RP12/RD11
   _RP3R = _RPOUT_U3RTS; // RP3/RD10->UART3:U3RTS
-  _LATD10 = 1;
-  _LATD11 = 1;
 
   // UART 4 - Secondary Ethernet
   _U4RXR = 25; // UART4:U4RX->RP25/RD4
@@ -314,13 +368,74 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_led2_init(&instance->activity_led, error)) != NULL;
 
   ok = !ok ? ok : (instance->hal.xbee_reset = wt_rx14xx_xbee_reset_init(&instance->xbee_reset, error)) != NULL;
-  ok = !ok ? ok : (instance->hal.xbee_uart = wt_rx14xx_xbee_uart_init(&instance->xbee_uart, 9600, true, wt_rx1400_isr_priority_xbee_uart_tx, wt_rx1400_isr_priority_xbee_uart_rx, wt_rx1400_isr_priority_xbee_uart_err, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.xbee_cts = wt_rx14xx_xbee_cts_init(&instance->xbee_cts, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.xbee_rts = wt_rx14xx_xbee_rts_init(&instance->xbee_rts, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.xbee_tx = wt_rx14xx_xbee_tx_init(&instance->xbee_tx, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.xbee_rx = wt_rx14xx_xbee_rx_init(&instance->xbee_rx, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.xbee_uart = wt_rx14xx_xbee_uart_init(
+    &instance->xbee_uart, 
+    9600, 
+    false, 
+    wt_rx1400_isr_priority_xbee_uart_tx, 
+    wt_rx1400_isr_priority_xbee_uart_rx, 
+    wt_rx1400_isr_priority_xbee_uart_err, 
+    instance->hal.xbee_tx,
+    instance->hal.xbee_rx,
+    instance->hal.xbee_cts,
+    instance->hal.xbee_rts,
+    error
+  )) != NULL;
 
-  ok = !ok ? ok : (instance->hal.debug_uart = wt_rx14xx_debug_uart_init(&instance->debug_uart, 230400, true, wt_rx1400_isr_priority_debug_uart_tx, wt_rx1400_isr_priority_debug_uart_rx, wt_rx1400_isr_priority_debug_uart_err, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.debug_tx = wt_rx14xx_debug_tx_init(&instance->debug_tx, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.debug_rx = wt_rx14xx_debug_rx_init(&instance->debug_rx, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.debug_uart = wt_rx14xx_debug_uart_init(
+    &instance->debug_uart, 
+    230400, 
+    true, 
+    wt_rx1400_isr_priority_debug_uart_tx, 
+    wt_rx1400_isr_priority_debug_uart_rx, 
+    wt_rx1400_isr_priority_debug_uart_err, 
+    instance->hal.debug_tx,
+    instance->hal.debug_rx,
+    NULL,
+    NULL,
+    error
+  )) != NULL;
 
   ok = !ok ? ok : (instance->hal.ethernet_reset = wt_rx1400_ethernet_reset_init(&instance->ethernet_reset, error)) != NULL;
-  ok = !ok ? ok : (instance->hal.primary_ethernet_uart = wt_rx14xx_primary_ethernet_uart_init(&instance->primary_ethernet_uart, 115200, true, wt_rx1400_isr_priority_primary_ethernet_uart_tx, wt_rx1400_isr_priority_primary_ethernet_uart_rx, wt_rx1400_isr_priority_primary_ethernet_uart_err, error)) != NULL;
-  ok = !ok ? ok : (instance->hal.secondary_ethernet_uart = wt_rx14xx_secondary_ethernet_uart_init(&instance->secondary_ethernet_uart, 115200, false, wt_rx1400_isr_priority_secondary_ethernet_uart_tx, wt_rx1400_isr_priority_secondary_ethernet_uart_rx, wt_rx1400_isr_priority_secondary_ethernet_uart_err, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.ethernet_primary_cts = wt_rx14xx_ethernet_primary_cts_init(&instance->ethernet_primary_cts, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.ethernet_primary_rts = wt_rx14xx_ethernet_primary_rts_init(&instance->ethernet_primary_rts, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.ethernet_primary_tx = wt_rx14xx_ethernet_primary_tx_init(&instance->ethernet_primary_tx, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.ethernet_primary_rx = wt_rx14xx_ethernet_primary_rx_init(&instance->ethernet_primary_rx, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.primary_ethernet_uart = wt_rx14xx_primary_ethernet_uart_init(
+    &instance->primary_ethernet_uart, 
+    115200, 
+    true, 
+    wt_rx1400_isr_priority_primary_ethernet_uart_tx, 
+    wt_rx1400_isr_priority_primary_ethernet_uart_rx, 
+    wt_rx1400_isr_priority_primary_ethernet_uart_err, 
+    instance->hal.ethernet_primary_tx,
+    instance->hal.ethernet_primary_rx,
+    instance->hal.ethernet_primary_cts,
+    instance->hal.ethernet_primary_rts,
+    error
+  )) != NULL;
+  
+  ok = !ok ? ok : (instance->hal.ethernet_secondary_tx = wt_rx14xx_ethernet_secondary_tx_init(&instance->ethernet_secondary_tx, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.ethernet_secondary_rx = wt_rx14xx_ethernet_secondary_rx_init(&instance->ethernet_secondary_rx, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.secondary_ethernet_uart = wt_rx14xx_secondary_ethernet_uart_init(
+    &instance->secondary_ethernet_uart, 
+    115200, 
+    false, 
+    wt_rx1400_isr_priority_secondary_ethernet_uart_tx, 
+    wt_rx1400_isr_priority_secondary_ethernet_uart_rx, 
+    wt_rx1400_isr_priority_secondary_ethernet_uart_err, 
+    instance->hal.ethernet_secondary_tx,
+    instance->hal.ethernet_secondary_rx,
+    NULL,
+    NULL,
+    error
+  )) != NULL;
 
   ok = !ok ? ok : wthal_gpio_weak_pull_up(instance->hal.ethernet_reset, true, error);
   ok = !ok ? ok : wthal_gpio_set(instance->hal.ethernet_reset, true, error);
