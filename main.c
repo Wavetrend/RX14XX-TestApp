@@ -437,6 +437,9 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     error
   )) != NULL;
 
+  ok = !ok ? ok : wthal_gpio_weak_pull_up(instance->hal.xbee_reset, true, error);
+  ok = !ok ? ok : wthal_gpio_set(instance->hal.xbee_reset, true, error);
+
   ok = !ok ? ok : wthal_gpio_weak_pull_up(instance->hal.ethernet_reset, true, error);
   ok = !ok ? ok : wthal_gpio_set(instance->hal.ethernet_reset, true, error);
 
