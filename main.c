@@ -71,6 +71,7 @@
 #include "wt_rx1400_app_task.h"
 #include "wt_rx1400_clock.h"
 #include "wt_rx14xx_debug.h"
+#include "wt_rx1400_reader_cache.h"
 
 /*
                          Main application
@@ -506,8 +507,10 @@ int main(void) {
   ok = !ok ? ok : wtapi_init(&host_secondary_api, &host_secondary_proto, &host_secondary_proto.impl, hal->clock, &error);
 
   wt_rx1400_app_task_t app;
+  wt_rx1400_params_t gateway_params;
   
-  ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, hal->xbee_reset, &xbee_api, &host_primary_api, &host_secondary_api, debug, &error) != NULL);
+  ok = !ok ? ok : wt_rx1400_params_init(&gateway_params, &error);
+  ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, hal->xbee_reset, &xbee_api, &host_primary_api, &host_secondary_api, &gateway_params, debug, &error) != NULL);
 
   while (ok && wt_task_incomplete(&app.task)) {
     ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
