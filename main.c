@@ -510,7 +510,7 @@ int main(void) {
   wt_rx1400_params_t gateway_params;
   
   ok = !ok ? ok : wt_rx1400_params_init(&gateway_params, &error);
-  ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, hal->xbee_reset, &xbee_api, &host_primary_api, &host_secondary_api, &gateway_params, debug, &error) != NULL);
+  ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, hal->xbee_reset, &xbee_api, &host_primary_api, &host_secondary_api, hal->system, &gateway_params, debug, &error) != NULL);
 
   while (ok && wt_task_incomplete(&app.task)) {
     ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
