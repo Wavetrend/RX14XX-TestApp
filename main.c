@@ -65,6 +65,7 @@
 #include "wthal_timer_pic24.h"
 #include "wthal_counter.h"
 #include "wthal_observers.h"
+#include "wthal_i2c_pic24.h"
 #include "wthal_isr_pic24.h"
 #include "wthal_gpio_pic24.h"
 #include "wthal_uart_pic24.h"
@@ -72,6 +73,7 @@
 #include "wt_rx1400_clock.h"
 #include "wt_rx14xx_debug.h"
 #include "wt_rx1400_reader_cache.h"
+#include "wthal_i2c_master_task.h"
 
 /*
                          Main application
@@ -197,6 +199,9 @@ WTHAL_UART_PIC24_DEFINE(wt_rx14xx_primary_ethernet_uart, 3, XTAL);
 WTHAL_UART_PIC24_DECLARE(wt_rx14xx_secondary_ethernet_uart);
 WTHAL_UART_PIC24_DEFINE(wt_rx14xx_secondary_ethernet_uart, 4, XTAL);
 
+WTHAL_I2C_PIC24_DECLARE(wt_rx14xx_i2c);
+WTHAL_I2C_PIC24_DEFINE(wt_rx14xx_i2c, 3);
+
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_xbee_cts);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_xbee_cts, _RB0, _TRISB0, _LATB0, _ANSB0, _CN2PUE, _CN2PDE, _ODB0);
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_xbee_rts);
@@ -270,6 +275,7 @@ typedef struct {
   wthal_uart_t * xbee_uart;
   wthal_uart_t * primary_ethernet_uart;
   wthal_uart_t * secondary_ethernet_uart;
+  wthal_i2c_t * i2c;
 
 } wt_hal_t;
 
@@ -312,6 +318,11 @@ typedef struct {
   wt_rx14xx_primary_ethernet_uart_t primary_ethernet_uart;
   wt_rx14xx_secondary_ethernet_uart_t secondary_ethernet_uart;
 
+  wt_rx14xx_i2c_t i2c;
+  wthal_i2c_master_task_t i2c_master_task;
+  wthal_i2c_request_t i2c_request_storage[16];
+  
+  
 } wt_rx1400_hal_t;
 
 wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t * const error) {
@@ -332,6 +343,7 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     wt_rx1400_isr_priority_secondary_ethernet_uart_tx = 4,
     wt_rx1400_isr_priority_secondary_ethernet_uart_rx = 4,
     wt_rx1400_isr_priority_secondary_ethernet_uart_err = 4,
+    wt_rx1400_isr_priority_i2c = 4,
   };
 
   PPS_UNLOCK();
@@ -446,6 +458,9 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
 
   ok = !ok ? ok : wthal_uart_open(instance->hal.debug_uart, error);
 
+  ok = !ok ? ok : (instance->hal.i2c = wt_rx14xx_i2c_init(&instance->i2c, &instance->i2c_master_task.task, wt_rx1400_isr_priority_i2c, error)) != NULL;
+  ok = !ok ? ok : (wthal_i2c_master_task_init(&instance->i2c_master_task, instance->hal.i2c, instance->i2c_request_storage, sizeof(instance->i2c_request_storage) / sizeof(instance->i2c_request_storage[0]), instance->hal.clock, error) != NULL);
+  
   return ok ? &instance->hal : NULL;
 
 }
