@@ -74,6 +74,7 @@
 #include "wt_rx14xx_debug.h"
 #include "wt_rx1400_reader_cache.h"
 #include "wthal_i2c_master_task.h"
+#include "wthal_nvm_pic24.h"
 
 /*
                          Main application
@@ -276,6 +277,7 @@ typedef struct {
   wthal_uart_t * primary_ethernet_uart;
   wthal_uart_t * secondary_ethernet_uart;
   wthal_i2c_t * i2c;
+  wthal_nvm_t * nvm;
 
 } wt_hal_t;
 
@@ -320,7 +322,9 @@ typedef struct {
 
   wt_rx14xx_i2c_t i2c;
   wthal_i2c_master_task_t i2c_master_task;
+  wthal_i2c_queue_t i2c_request_queue;
   wthal_i2c_request_t i2c_request_storage[16];
+  wthal_nvm_pic24_t nvm;
   
   
 } wt_rx1400_hal_t;
@@ -459,7 +463,9 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   ok = !ok ? ok : wthal_uart_open(instance->hal.debug_uart, error);
 
   ok = !ok ? ok : (instance->hal.i2c = wt_rx14xx_i2c_init(&instance->i2c, &instance->i2c_master_task.task, wt_rx1400_isr_priority_i2c, error)) != NULL;
-  ok = !ok ? ok : (wthal_i2c_master_task_init(&instance->i2c_master_task, instance->hal.i2c, instance->i2c_request_storage, sizeof(instance->i2c_request_storage) / sizeof(instance->i2c_request_storage[0]), instance->hal.clock, error) != NULL);
+  ok = !ok ? ok : wthal_i2c_queue_init(&instance->i2c_request_queue, instance->i2c_request_storage, sizeof(instance->i2c_request_storage) / sizeof(instance->i2c_request_storage[0]), error);
+  ok = !ok ? ok : (wthal_i2c_master_task_init(&instance->i2c_master_task, instance->hal.i2c, &instance->i2c_request_queue, instance->hal.clock, error) != NULL);
+  ok = !ok ? ok : (instance->hal.nvm = wthal_nvm_pic24_init(&instance->nvm, instance->hal.i2c, &instance->i2c_request_queue, error)) != NULL;
   
   return ok ? &instance->hal : NULL;
 
