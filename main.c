@@ -325,7 +325,7 @@ typedef struct {
   wthal_i2c_queue_t i2c_request_queue;
   wthal_i2c_request_t i2c_request_storage[16];
   wthal_nvm_pic24_t nvm;
-  
+  wthal_nvm_pic24_frame_t nvm_frame_storage[128];
   
 } wt_rx1400_hal_t;
 
@@ -465,7 +465,7 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   ok = !ok ? ok : (instance->hal.i2c = wt_rx14xx_i2c_init(&instance->i2c, &instance->i2c_master_task.task, wt_rx1400_isr_priority_i2c, error)) != NULL;
   ok = !ok ? ok : wthal_i2c_queue_init(&instance->i2c_request_queue, instance->i2c_request_storage, sizeof(instance->i2c_request_storage) / sizeof(instance->i2c_request_storage[0]), error);
   ok = !ok ? ok : (wthal_i2c_master_task_init(&instance->i2c_master_task, instance->hal.i2c, &instance->i2c_request_queue, instance->hal.clock, error) != NULL);
-  ok = !ok ? ok : (instance->hal.nvm = wthal_nvm_pic24_init(&instance->nvm, instance->hal.i2c, &instance->i2c_request_queue, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.nvm = wthal_nvm_pic24_init(&instance->nvm, instance->hal.i2c, &instance->i2c_request_queue, instance->nvm_frame_storage, sizeof(instance->nvm_frame_storage) / sizeof(instance->nvm_frame_storage[0]), error)) != NULL;
   
   return ok ? &instance->hal : NULL;
 
