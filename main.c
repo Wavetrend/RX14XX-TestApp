@@ -497,7 +497,7 @@ int main(void) {
   ok = !ok ? ok : ((debug = wt_rx14xx_debug_init(&rx14xx_debug, hal->debug_uart, hal->clock, &error)) != NULL);
 
   if (ok) {
-    wt_debug_print(debug, "============================= STARTUP ===========================");
+    wt_debug_print(debug, "============================= STARTUP ========================= (0x%04x)", RCON);
   }
   
   // XBEE API
@@ -530,10 +530,9 @@ int main(void) {
   wt_rx1400_app_task_t app;
   wt_rx1400_params_t gateway_params;
   
-  ok = !ok ? ok : wt_rx1400_params_init(&gateway_params, &error);
-  
-  // TODO: Load params from NVM (ISSUE #5)
-  
+  ok = !ok ? ok : wt_rx1400_params_init(&gateway_params, hal->nvm, debug, &error);
+  ok = !ok ? ok : wt_rx1400_params_loader(&gateway_params, &error);
+
   ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, hal->xbee_reset, &xbee_api, &host_primary_api, &host_secondary_api, hal->system, hal->nvm, &gateway_params, debug, &error) != NULL);
 
   while (ok && wt_task_incomplete(&app.task)) {
