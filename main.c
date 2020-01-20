@@ -545,6 +545,10 @@ int main(void) {
       error.acknowledged = true;
       ok = wthal_clock_set_alarm(hal->clock, device_reset, hal->system, 3000, &error);
     }
+  }
+
+  // allow for ISR's to complete
+  for(uint32_t i=0 ; i < 100000 ; i++) {
     wthal_system_nop(hal->system, &error);
   }
 
