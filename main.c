@@ -541,7 +541,7 @@ int main(void) {
     ok = !ok ? ok : wt_task_spin(&app.task, &error);
     
     if (!ok && !error.acknowledged) {
-      printf("\nERROR %d, File:%s, Line:%d", error.error_code, error.file, error.line);
+      wt_debug_print(debug, "ERROR %d, File:%s, Line:%d", error.error_code, error.file, error.line);
       error.acknowledged = true;
       ok = wthal_clock_set_alarm(hal->clock, device_reset, hal->system, 3000, &error);
     }
