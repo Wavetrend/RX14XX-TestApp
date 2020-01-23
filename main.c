@@ -72,6 +72,7 @@
 #include "wt_rx1400_app_task.h"
 #include "wt_rx1400_clock.h"
 #include "wt_rx14xx_debug.h"
+#include "wt_rx1400_debug.h"
 #include "wt_rx1400_reader_cache.h"
 #include "wthal_i2c_master_task.h"
 #include "wthal_nvm_pic24.h"
@@ -495,7 +496,8 @@ int main(void) {
   wt_rx14xx_debug_t rx14xx_debug;
   wt_debug_t * debug;  
   ok = !ok ? ok : ((debug = wt_rx14xx_debug_init(&rx14xx_debug, hal->debug_uart, hal->clock, &error)) != NULL);
-
+  wt_module_debug_set_modules(WT_RX1400_DEBUG_ALL & ~WT_RX1400_DEBUG_ETH1 & ~WT_RX1400_DEBUG_ETH2 & ~WT_RX1400_DEBUG_XBEE);
+  
   if (ok) {
     wt_debug_print(debug, "============================= STARTUP ========================= (0x%04x)", RCON);
   }
@@ -505,7 +507,7 @@ int main(void) {
   wtapi_xbee_t xbee_proto;
   wtapi_t xbee_api;
 
-  ok = !ok ? ok : (wtio_uart_init(&xbee_uart, hal->xbee_uart, debug, 1, "XB", &error) != NULL);
+  ok = !ok ? ok : (wtio_uart_init(&xbee_uart, hal->xbee_uart, debug, WT_RX1400_DEBUG_XBEE, "XB", &error) != NULL);
   ok = !ok ? ok : wtapi_xbee_init(&xbee_proto, NULL, NULL, &xbee_uart.impl, 0, 0, hal->clock, &error);
   ok = !ok ? ok : wtapi_init(&xbee_api, &xbee_proto, &xbee_proto.impl, hal->clock, &error);
 
@@ -514,7 +516,7 @@ int main(void) {
   wtapi_host_t host_primary_proto;
   wtapi_t host_primary_api;
 
-  ok = !ok ? ok : (wtio_uart_init(&host_primary_uart, hal->primary_ethernet_uart, debug, 1, "E1", &error) != NULL);
+  ok = !ok ? ok : (wtio_uart_init(&host_primary_uart, hal->primary_ethernet_uart, debug, WT_RX1400_DEBUG_ETH1, "E1", &error) != NULL);
   ok = !ok ? ok : wtapi_host_init(&host_primary_proto, NULL, NULL, &host_primary_uart.impl, &error);
   ok = !ok ? ok : wtapi_init(&host_primary_api, &host_primary_proto, &host_primary_proto.impl, hal->clock, &error);
 
@@ -523,7 +525,7 @@ int main(void) {
   wtapi_host_t host_secondary_proto;
   wtapi_t host_secondary_api;
 
-  ok = !ok ? ok : (wtio_uart_init(&host_secondary_uart, hal->secondary_ethernet_uart, debug, 1, "E2", &error) != NULL);
+  ok = !ok ? ok : (wtio_uart_init(&host_secondary_uart, hal->secondary_ethernet_uart, debug, WT_RX1400_DEBUG_ETH2, "E2", &error) != NULL);
   ok = !ok ? ok : wtapi_host_init(&host_secondary_proto, NULL, NULL, &host_secondary_uart.impl, &error);
   ok = !ok ? ok : wtapi_init(&host_secondary_api, &host_secondary_proto, &host_secondary_proto.impl, hal->clock, &error);
 
