@@ -537,14 +537,18 @@ int main(void) {
 
   ok = !ok ? ok : (wt_rx1400_app_task_init(&app, hal->clock, hal->activity_led, hal->ethernet_reset, hal->xbee_reset, &xbee_api, &host_primary_api, &host_secondary_api, hal->system, hal->nvm, &gateway_params, debug, &error) != NULL);
 
+  bool pending_reset = false;
+  
   while (ok && wt_task_incomplete(&app.task)) {
     ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
     ok = !ok ? ok : wt_task_spin(&app.task, &error);
     
-    if (!ok && !error.acknowledged) {
-      wt_debug_print(debug, "ERROR %d, File:%s, Line:%d", error.error_code, error.file, error.line);
-      error.acknowledged = true;
-      ok = wthal_clock_set_alarm(hal->clock, device_reset, hal->system, 3000, &error);
+    if (!ok) {
+      ok = true;
+      if (!pending_reset) {
+        ok = wthal_clock_set_alarm(hal->clock, device_reset, hal->system, 3000, &error);
+        pending_reset = ok;
+      }
     }
   }
 
