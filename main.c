@@ -546,6 +546,7 @@ int main(void) {
     if (!ok) {
       ok = true;
       if (!pending_reset) {
+        wt_debug_print(debug, "**LAST ERROR**: %d file: %s, line: %d", error.error_code, error.file, error.line);
         ok = wthal_clock_set_alarm(hal->clock, device_reset, hal->system, 3000, &error);
         pending_reset = ok;
       }
