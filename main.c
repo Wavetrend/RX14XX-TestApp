@@ -192,6 +192,35 @@ wtio_t * wtio_uart_init(
 
 #define XTAL (14745600)
 
+static bool no_analogue;
+
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_tp1);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_tp1, _RB12, _TRISB12, _LATB12, _ANSB12, _CN30PUE, _CN30PDE, _ODB12);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_tp2);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_tp2, _RF4, _TRISF4, _LATF4, no_analogue, _CN17PUE, _CN17PDE, _ODF4);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_tp3);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_tp3, _RF5, _TRISF5, _LATF5, no_analogue, _CN18PUE, _CN18PDE, _ODF5);
+
+wt_rx14xx_tp1_t tp1;
+wt_rx14xx_tp2_t tp2;
+wt_rx14xx_tp3_t tp3;
+
+void tp1_set(bool high) {
+  wthal_gpio_set(&tp1.gpio, high, NULL);
+}
+
+void tp2_set(bool high) {
+  wthal_gpio_set(&tp2.gpio, high, NULL);
+}
+
+void tp3_set(bool high) {
+  wthal_gpio_set(&tp3.gpio, high, NULL);
+}
+
+void tp4_set(bool high) {
+ 
+}
+
 WTHAL_UART_PIC24_DECLARE(wt_rx14xx_xbee_uart);
 WTHAL_UART_PIC24_DEFINE(wt_rx14xx_xbee_uart, 1, XTAL);
 WTHAL_UART_PIC24_DECLARE(wt_rx14xx_debug_uart);
@@ -212,8 +241,6 @@ WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_xbee_tx);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_xbee_tx, _RB9, _TRISB9, _LATB9, _ANSB9, _CN27PUE, _CN27PDE, _ODB9);
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_xbee_rx);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_xbee_rx, _RB8, _TRISB8, _LATB8, _ANSB8, _CN26PUE, _CN26PDE, _ODB8);
-
-static bool no_analogue;
 
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_debug_tx);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_debug_tx, _RD3, _TRISD3, _LATD3, no_analogue, _CN52PUE, _CN52PDE, _ODD3);
@@ -385,6 +412,10 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   ok = !ok ? ok : (instance->hal.startup_led = wt_rx14xx_led1_init(&instance->startup_led, error)) != NULL;
   ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_led2_init(&instance->activity_led, error)) != NULL;
 
+  ok = !ok ? ok : (wt_rx14xx_tp1_init(&tp1, error) != NULL);
+  ok = !ok ? ok : (wt_rx14xx_tp2_init(&tp2, error) != NULL);
+  ok = !ok ? ok : (wt_rx14xx_tp3_init(&tp3, error) != NULL);
+  
   ok = !ok ? ok : (instance->hal.xbee_reset = wt_rx14xx_xbee_reset_init(&instance->xbee_reset, error)) != NULL;
   ok = !ok ? ok : (instance->hal.xbee_cts = wt_rx14xx_xbee_cts_init(&instance->xbee_cts, error)) != NULL;
   ok = !ok ? ok : (instance->hal.xbee_rts = wt_rx14xx_xbee_rts_init(&instance->xbee_rts, error)) != NULL;
@@ -454,6 +485,13 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     NULL,
     error
   )) != NULL;
+
+  ok = !ok ? ok : wthal_gpio_weak_pull_up(&tp1.gpio, true, error);
+  ok = !ok ? ok : wthal_gpio_set(&tp1.gpio, false, error);
+  ok = !ok ? ok : wthal_gpio_weak_pull_up(&tp2.gpio, true, error);
+  ok = !ok ? ok : wthal_gpio_set(&tp2.gpio, false, error);
+  ok = !ok ? ok : wthal_gpio_weak_pull_up(&tp3.gpio, true, error);
+  ok = !ok ? ok : wthal_gpio_set(&tp3.gpio, false, error);
 
   ok = !ok ? ok : wthal_gpio_weak_pull_up(instance->hal.xbee_reset, true, error);
   ok = !ok ? ok : wthal_gpio_set(instance->hal.xbee_reset, true, error);
