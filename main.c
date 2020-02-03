@@ -534,7 +534,9 @@ int main(void) {
   wt_rx14xx_debug_t rx14xx_debug;
   wt_debug_t * debug;  
   ok = !ok ? ok : ((debug = wt_rx14xx_debug_init(&rx14xx_debug, hal->debug_uart, hal->clock, &error)) != NULL);
-  wt_module_debug_set_modules(WT_RX1400_DEBUG_ALL & ~WT_RX1400_DEBUG_ETH1 & ~WT_RX1400_DEBUG_ETH2 & ~WT_RX1400_DEBUG_XBEE);
+//  wt_module_debug_set_modules(WT_RX1400_DEBUG_ALL & ~WT_RX1400_DEBUG_ETH1 & ~WT_RX1400_DEBUG_ETH2 & ~WT_RX1400_DEBUG_XBEE);
+  wt_module_debug_set_modules(WT_RX1400_DEBUG_ALL);
+//  wt_module_debug_set_modules(0);
   
   if (ok) {
     wt_debug_print(debug, "============================= STARTUP ========================= (0x%04x)", RCON);
