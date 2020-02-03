@@ -91,6 +91,8 @@ typedef struct {
   wt_debug_t * debug;
   wt_module_debug_t module_debug;
   char const * debug_prefix;
+  char debug_send_prefix[16];
+  char debug_recv_prefix[16];
 
 } wtio_uart_t;
 
@@ -116,9 +118,7 @@ static size_t wtio_uart_read_impl(void * const context, void * const data, size_
   wtio_uart_t * const instance = context;
   size_t read = wthal_uart_read(instance->uart, data, size, error);
   if (read > 0) {
-    char msg[16];
-    sprintf(msg, "%.13s<<", instance->debug_prefix);
-    wt_debug_dump(instance->debug, msg, data, read);
+    wt_debug_dump(instance->debug, instance->debug_recv_prefix, data, read);
   }
   return read;
 }
@@ -127,9 +127,7 @@ static size_t wtio_uart_write_impl(void * const context, void const * const data
   wtio_uart_t * const instance = context;
   size_t written = wthal_uart_write(instance->uart, data, size, error);
   if (written > 0) {
-    char msg[16];
-    sprintf(msg, "%.13s>>", instance->debug_prefix);
-    wt_debug_dump(instance->debug, msg, data, written);
+    wt_debug_dump(instance->debug, instance->debug_send_prefix, data, written);
   }
   return written;
 }
@@ -168,6 +166,8 @@ wtio_t * wtio_uart_init(
     instance->uart = uart;
     
     instance->debug_prefix = debug_prefix;
+    (void)sprintf(instance->debug_recv_prefix, "%.*s<<", sizeof(instance->debug_recv_prefix)-3, instance->debug_prefix);
+    (void)sprintf(instance->debug_send_prefix, "%.*s>>", sizeof(instance->debug_send_prefix)-3, instance->debug_prefix);
     instance->debug = wt_module_debug_init(&instance->module_debug, debug_module, &wt_module_debug_impl, debug, error);
     instance->impl.context = instance;
     instance->impl.open = wtio_uart_open_impl;
