@@ -539,7 +539,9 @@ int main(void) {
 //  wt_module_debug_set_modules(0);
   
   if (ok) {
-    wt_debug_print(debug, "============================= STARTUP ========================= (0x%04x)", RCON);
+    uint16_t status;
+    ok = wthal_system_reset_status(hal->system, &status, false, &error);
+    wt_debug_print(debug, "============================= STARTUP ========================= (0x%04x)", status);
   }
   
   // XBEE API
