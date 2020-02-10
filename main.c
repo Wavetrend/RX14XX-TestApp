@@ -265,6 +265,8 @@ WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_led1);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_led1, _RD7, _TRISD7, _LATD7, _ANSD7, _CN16PUE, _CN16PDE, _ODD7);
 WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_led2);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_led2, _RD6, _TRISD6, _LATD6, _ANSD6, _CN15PUE, _CN15PDE, _ODD6);
+WTHAL_GPIO_PIC24_DECLARE(wt_rx14xx_ext_led);
+WTHAL_GPIO_PIC24_DEFINE(wt_rx14xx_ext_led, _RC14, _TRISC14, _LATC14, _ANSC14, _CN0PUE, _CN0PDE, _ODC14);
 
 WTHAL_GPIO_PIC24_DECLARE(wt_rx1400_ethernet_reset);
 WTHAL_GPIO_PIC24_DEFINE(wt_rx1400_ethernet_reset, _RB2, _TRISB2, _LATB2, _ANSB2, _CN4PUE, _CN4PDE, _ODB2);
@@ -281,7 +283,8 @@ typedef struct {
 
   wthal_system_t * system;
   wthal_isr_t * t5_isr;
-  wthal_gpio_t * startup_led;
+  wthal_gpio_t * xbee_led;
+  wthal_gpio_t * ethernet_led;
   wthal_gpio_t * activity_led;
   wthal_gpio_t * ethernet_reset;
   wthal_gpio_t * xbee_reset;
@@ -322,8 +325,9 @@ typedef struct {
   wthal_counter_t counter;
   wt_rx1400_clock_t clock;
 
-  wt_rx14xx_led1_t startup_led;
-  wt_rx14xx_led2_t activity_led;
+  wt_rx14xx_led1_t xbee_led;
+  wt_rx14xx_led2_t ethernet_led;
+  wt_rx14xx_ext_led_t activity_led;
 
   wt_rx14xx_xbee_reset_t xbee_reset;
   wt_rx14xx_xbee_cts_t xbee_cts;
@@ -409,8 +413,9 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
   ok = !ok ? ok : (instance->hal.counter = wthal_counter_init(&instance->counter, error)) != NULL;
   ok = !ok ? ok : (instance->hal.clock = wt_rx1400_clock_init(&instance->clock, instance->hal.timer5, instance->hal.t5_isr, instance->hal.counter, 10, error)) != NULL;
 
-  ok = !ok ? ok : (instance->hal.startup_led = wt_rx14xx_led1_init(&instance->startup_led, error)) != NULL;
-  ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_led2_init(&instance->activity_led, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.xbee_led = wt_rx14xx_led1_init(&instance->xbee_led, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.ethernet_led = wt_rx14xx_led2_init(&instance->ethernet_led, error)) != NULL;
+  ok = !ok ? ok : (instance->hal.activity_led = wt_rx14xx_ext_led_init(&instance->activity_led, error)) != NULL;
 
   ok = !ok ? ok : (wt_rx14xx_tp1_init(&tp1, error) != NULL);
   ok = !ok ? ok : (wt_rx14xx_tp2_init(&tp2, error) != NULL);
@@ -432,6 +437,7 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     instance->hal.xbee_rx,
     instance->hal.xbee_cts,
     instance->hal.xbee_rts,
+    instance->hal.xbee_led,
     error
   )) != NULL;
 
@@ -446,6 +452,7 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     wt_rx1400_isr_priority_debug_uart_err, 
     instance->hal.debug_tx,
     instance->hal.debug_rx,
+    NULL,
     NULL,
     NULL,
     error
@@ -467,6 +474,7 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     instance->hal.ethernet_primary_rx,
     instance->hal.ethernet_primary_cts,
     instance->hal.ethernet_primary_rts,
+    instance->hal.ethernet_led,
     error
   )) != NULL;
   
@@ -483,6 +491,7 @@ wt_hal_t * const wt_rx1400_hal_init(wt_rx1400_hal_t * const instance, wt_error_t
     instance->hal.ethernet_secondary_rx,
     NULL,
     NULL,
+    instance->hal.ethernet_led,
     error
   )) != NULL;
 
