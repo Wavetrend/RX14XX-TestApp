@@ -77,6 +77,18 @@
 #include "wthal_i2c_master_task.h"
 #include "wthal_nvm_pic24.h"
 
+#ifdef DEBUG_STACK
+// https://www.microchip.com/forums/m966141.aspx
+extern void fill_stack(void); // Call as early as possible. Does not write over already used stack space.
+extern void check_stack(void); // Returns the number of unused stack words, and a pointer to the last used word.
+uint16_t volatile MaxStackPointer; //The highest point the stack pointer ever reached
+uint16_t volatile UnusedStackBytes; //Number of stack bytes remaining
+uint16_t volatile StackLimit; //The stack limit pointer
+#else
+#define fill_stack()
+#define check_stack();
+#endif
+
 /*
                          Main application
  */
@@ -527,6 +539,12 @@ static void device_reset(void * const context) {
 int main(void) {
   wt_error_t error;
 
+#ifdef DEBUG_STACK
+  fill_stack();
+  check_stack();
+  uint16_t LastUnusedStackBytes = UnusedStackBytes;
+#endif
+
   // initialize the device - MUST COME FIRST OR WILL OVERRIDE HAL STYLE CONFIG
   SYSTEM_Initialize();
 
@@ -552,6 +570,10 @@ int main(void) {
     ok = wthal_system_reset_status(hal->system, &status, false, &error);
     wt_debug_print(debug, "============================= STARTUP ========================= (0x%04x)", status);
   }
+
+#ifdef DEBUG_STACK
+  wt_debug_print(debug, "Stack: %u at startup", UnusedStackBytes);
+#endif
   
   // XBEE API
   wtio_uart_t xbee_uart;
@@ -592,6 +614,15 @@ int main(void) {
   
   while (ok && wt_task_incomplete(&app.task)) {
     ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
+
+#ifdef DEBUG_STACK
+    check_stack();
+    if (UnusedStackBytes < LastUnusedStackBytes) {
+      wt_debug_print(debug, "*** Stack Warning ***: %u bytes low-water", UnusedStackBytes);
+      LastUnusedStackBytes = UnusedStackBytes;
+    }
+#endif
+    
     ok = !ok ? ok : wt_task_spin(&app.task, &error);
     
     if (!ok) {
