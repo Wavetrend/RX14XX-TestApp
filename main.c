@@ -65,7 +65,7 @@
 #include "wthal_uart_pic24.h"
 #include "wt_rx1400_clock.h"
 #include "wt_rx14xx_debug.h"
-#include "wt_rx1400_debug.h"
+#include "wt_rx14xx_bl_debug.h"
 
 #ifdef DEBUG_STACK
 // https://www.microchip.com/forums/m966141.aspx
@@ -275,7 +275,7 @@ int main(void) {
   wt_rx14xx_debug_t rx14xx_debug;
   wt_debug_t * debug;  
   ok = !ok ? ok : ((debug = wt_rx14xx_debug_init(&rx14xx_debug, hal->debug_uart, hal->clock, &error)) != NULL);
-  wt_module_debug_set_modules(WT_RX1400_DEBUG_ALL);
+  wt_module_debug_set_modules(WT_RX14XX_BL_DEBUG_ALL);
 //  wt_module_debug_set_modules(0);
   
   if (ok) {
