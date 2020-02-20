@@ -401,6 +401,8 @@
       </item>
       <item path="stack.s" ex="true" overriding="false">
       </item>
+      <item path="stack.s" ex="true" overriding="false">
+      </item>
     </conf>
   </confs>
 </configurationDescriptor>
