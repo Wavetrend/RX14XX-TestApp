@@ -66,6 +66,7 @@
 #include "wt_rx1400_clock.h"
 #include "wt_rx14xx_debug.h"
 #include "wt_rx14xx_bl_debug.h"
+#include "wt_rx14xx_bootloader_task.h"
 
 #ifdef DEBUG_STACK
 // https://www.microchip.com/forums/m966141.aspx
@@ -281,16 +282,19 @@ int main(void) {
   if (ok) {
     uint16_t status;
     ok = wthal_system_reset_status(hal->system, &status, false, &error);
-    wt_debug_print(debug, "============================= BOOTLOADER ========================= (0x%04x)", status);
+    wt_debug_print(debug, "=========================== BOOTLOADER ======================== (0x%04x)", status);
   }
 
 #ifdef DEBUG_STACK
   wt_debug_print(debug, "Stack: %u at startup", UnusedStackBytes);
 #endif
+
+  wt_rx14xx_bootloader_task_t bootloader;
+  ok = !ok ? ok : (wt_rx14xx_bootloader_task_init(&bootloader, hal->led1, hal->clock, debug, &error) != NULL);
   
   bool pending_reset = false;
   
-  while (ok /* && wt_task_incomplete(&app.task) */) {
+  while (ok && wt_task_incomplete(&bootloader.task)) {
     ok = !ok ? ok : wthal_system_clear_watchdog_timer(hal->system, &error);
 
 #ifdef DEBUG_STACK
@@ -301,7 +305,7 @@ int main(void) {
     }
 #endif
     
-//    ok = !ok ? ok : wt_task_spin(&app.task, &error);
+    ok = !ok ? ok : wt_task_spin(&bootloader.task, &error);
     
     if (!ok) {
       ok = true;
