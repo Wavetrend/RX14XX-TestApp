@@ -399,9 +399,19 @@
         <C30Global>
         </C30Global>
       </item>
-      <item path="stack.s" ex="true" overriding="false">
-      </item>
-      <item path="stack.s" ex="true" overriding="false">
+      <item path="stack.s" ex="false" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-CO>
+        </C30-CO>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
     </conf>
   </confs>
