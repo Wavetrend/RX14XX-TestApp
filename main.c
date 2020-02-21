@@ -311,6 +311,21 @@ int main(void) {
     
     ok = !ok ? ok : wt_task_spin(&bootloader.task, &error);
     
+    if (ok) {
+      if (!wt_task_incomplete(&bootloader.task)) {
+        if (EZBL_IsAppPresent()) {
+          wt_debug_print(debug, "Bootloader completed, handing over to app");
+          ok = wthal_gpio_set(hal->led1, false, &error);
+          
+          EZBL_RAMSet((void*)&IEC0, 0x00, (unsigned int)&IPC0 - (unsigned int)&IEC0);   // Clear every bit in all IECx Interrupt Enable registers
+          EZBL_ForwardAllIntToApp();                                                    // Forward all Interrupts to the Application
+          EZBL_StartAppIfPresent();   // Sets EZBL_appIsRunning = 0xFFFF and temporarily disables IPL6 and lower interrupts before launching Application
+
+        } else {
+          wt_debug_print(debug, "**FATAL** Bootloader completed without app found");
+        }
+      }
+    }
     if (!ok) {
       ok = true;
       if (!pending_reset) {
