@@ -1400,7 +1400,7 @@ _EZBL_FORWARD_IRQ_U2Err          = 66;
 
 
 #define __EZBL_TOOLS_COMPUTED_BOOT_RAM_USE /* FYI - not stored/used */          \
-    LONG(0x000850); LONG(0x000A9A);
+    LONG(0x000850); LONG(0x000A9C);
 
 #define __EZBL_TOOLS_COMPUTED_APP_SPACE_GEOMETRY                                \
     LONG(0x005000); LONG(0x008000);                                             \
