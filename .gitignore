@@ -3,3 +3,5 @@ dist/
 nbproject/Makefile-*
 nbproject/Package-*
 nbproject/private/
+ezbl_integration/RX14XX-BL.merge.S
+ezbl_integration/RX14XX-BL.merge.gld

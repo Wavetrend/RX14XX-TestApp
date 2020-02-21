@@ -50,6 +50,7 @@
 
 #include <xc.h>
 #include "mcc_generated_files/system.h"
+#include "ezbl_integration/ezbl.h"
 
 #include "wt_assert.h"
 #include "wt_error.h"
@@ -263,6 +264,9 @@ int main(void) {
   // initialize the device - MUST COME FIRST OR WILL OVERRIDE HAL STYLE CONFIG
   SYSTEM_Initialize();
 
+  EZBL_SetAppReservedHole(0x005000, 0x008000);
+  EZBL_ForwardAllIntToBoot();
+  
   bool ok = true;
 
   ok = !ok ? ok : wt_error_init(&error);

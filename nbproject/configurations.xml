@@ -14,10 +14,12 @@
         <itemPath>mcc_generated_files/mcc.h</itemPath>
         <itemPath>mcc_generated_files/system.h</itemPath>
       </logicalFolder>
+      <itemPath>ezbl_integration/ezbl.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
                    projectFiles="true">
+      <itemPath>ezbl_integration/ezbl_build_standalone.gld</itemPath>
     </logicalFolder>
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
@@ -40,10 +42,12 @@
                    projectFiles="false">
       <itemPath>Makefile</itemPath>
       <itemPath>MyConfig.mc3</itemPath>
+      <itemPath>ezbl_integration/ezbl_boot.mk</itemPath>
     </logicalFolder>
   </logicalFolder>
   <sourceRootList>
     <Elem>src</Elem>
+    <Elem>ezbl_integration</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -81,6 +85,7 @@
                             DD="dist/Debug/debug/RX14XX-API.mplabproj.a">
               </makeArtifact>
             </linkerLibProjectItem>
+            <linkerLibFileItem>ezbl_integration/ezbl_lib.a</linkerLibFileItem>
           </linkerLibItems>
         </linkerTool>
         <archiverTool>
@@ -233,43 +238,52 @@
       <PICkit3PlatformTool>
         <property key="ADC 1" value="true"/>
         <property key="AutoSelectMemRanges" value="auto"/>
-        <property key="CLOCK CONTROL" value="true"/>
+        <property key="CLC 1" value="true"/>
+        <property key="CLC 2" value="true"/>
+        <property key="CLC 3" value="true"/>
+        <property key="CLC 4" value="true"/>
         <property key="COMPARATOR" value="true"/>
         <property key="CRC" value="true"/>
         <property key="CTMU" value="true"/>
+        <property key="DMA" value="true"/>
         <property key="Freeze All Other Peripherals" value="true"/>
-        <property key="I2C1" value="true"/>
-        <property key="I2C2" value="true"/>
-        <property key="I2C3" value="true"/>
+        <property key="I2C 1" value="true"/>
+        <property key="I2C 2" value="true"/>
+        <property key="I2C 3" value="true"/>
         <property key="INPUT CAPTURE 1" value="true"/>
         <property key="INPUT CAPTURE 2" value="true"/>
         <property key="INPUT CAPTURE 3" value="true"/>
         <property key="INPUT CAPTURE 4" value="true"/>
         <property key="INPUT CAPTURE 5" value="true"/>
         <property key="INPUT CAPTURE 6" value="true"/>
-        <property key="INPUT CAPTURE 7" value="true"/>
-        <property key="INPUT CAPTURE 8" value="true"/>
-        <property key="INPUT CAPTURE 9" value="true"/>
+        <property key="IOC" value="true"/>
+        <property key="LVD" value="true"/>
+        <property key="MCCP/SCCP 1" value="true"/>
+        <property key="MCCP/SCCP 2" value="true"/>
+        <property key="MCCP/SCCP 3" value="true"/>
+        <property key="MCCP/SCCP 4" value="true"/>
+        <property key="MCCP/SCCP 5" value="true"/>
+        <property key="MCCP/SCCP 6" value="true"/>
+        <property key="MCCP/SCCP 7" value="true"/>
+        <property key="OSC" value="true"/>
         <property key="OUTPUT COMPARE 1" value="true"/>
         <property key="OUTPUT COMPARE 2" value="true"/>
         <property key="OUTPUT COMPARE 3" value="true"/>
         <property key="OUTPUT COMPARE 4" value="true"/>
         <property key="OUTPUT COMPARE 5" value="true"/>
         <property key="OUTPUT COMPARE 6" value="true"/>
-        <property key="OUTPUT COMPARE 7" value="true"/>
-        <property key="OUTPUT COMPARE 8" value="true"/>
-        <property key="OUTPUT COMPARE 9" value="true"/>
-        <property key="PARALLEL MASTER/SLAVE PORT" value="true"/>
+        <property key="PMP" value="true"/>
+        <property key="REFO" value="true"/>
         <property key="RTCC" value="true"/>
         <property key="SPI 1" value="true"/>
         <property key="SPI 2" value="true"/>
         <property key="SPI 3" value="true"/>
         <property key="SecureSegment.SegmentProgramming" value="FullChipProgramming"/>
-        <property key="TIMER1" value="true"/>
-        <property key="TIMER2" value="true"/>
-        <property key="TIMER3" value="true"/>
-        <property key="TIMER4" value="true"/>
-        <property key="TIMER5" value="true"/>
+        <property key="TIMER 1" value="true"/>
+        <property key="TIMER 2" value="true"/>
+        <property key="TIMER 3" value="true"/>
+        <property key="TIMER 4" value="true"/>
+        <property key="TIMER 5" value="true"/>
         <property key="ToolFirmwareFilePath"
                   value="Press to browse for a specific firmware version"/>
         <property key="ToolFirmwareOption.UseLatestFirmware" value="true"/>
@@ -277,7 +291,9 @@
         <property key="UART 2" value="true"/>
         <property key="UART 3" value="true"/>
         <property key="UART 4" value="true"/>
-        <property key="UCNFG1" value="true"/>
+        <property key="UART 5" value="true"/>
+        <property key="UART 6" value="true"/>
+        <property key="USB" value="true"/>
         <property key="debugoptions.useswbreakpoints" value="false"/>
         <property key="hwtoolclock.frcindebug" value="false"/>
         <property key="memories.aux" value="false"/>
