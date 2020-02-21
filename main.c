@@ -294,7 +294,7 @@ int main(void) {
 #endif
 
   wt_rx14xx_bootloader_task_t bootloader;
-  ok = !ok ? ok : (wt_rx14xx_bootloader_task_init(&bootloader, hal->led1, hal->clock, debug, &error) != NULL);
+  ok = !ok ? ok : (wt_rx14xx_bootloader_task_init(&bootloader, hal->led1, 200, hal->clock, debug, &error) != NULL);
   
   bool pending_reset = false;
   
