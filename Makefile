@@ -49,12 +49,25 @@ CP=cp
 CCADMIN=CCadmin
 RANLIB=ranlib
 
+# MAKEFILESGEN is set to the platform dependent location of the generator
+# script, typically:
+# /Applications/microchip/mplabx/v5.30/mplab_platform/bin
+
+ifeq (, $(findstring ${OS_CURRENT},"Darwin"))
+MAKEFILESGEN=${PATH_TO_IDE_BIN}prjMakefilesGenerator.sh
+else
+MAKEFILESGEN=${PATH_TO_IDE_BIN}prjMakefilesGenerator.bat
+endif
 
 # build
 build: .build-post
 
 .build-pre:
-# Add your pre 'build' code here...
+# Manually build bootloader submodule (MPLAB does not support application project as project dependencies
+# 1. Run the script to regenerate the project makefiles (not stored in repo)
+	${MAKEFILESGEN} lib/RX14XX-BL
+# 2. Build with the target config
+	${MAKE} --directory=lib/RX14XX-BL -f Makefile CONF=RX1400 SUBPROJECTS=${SUBPROJECTS} build
 
 .build-post: .build-impl
 # Add your post 'build' code here...
@@ -65,6 +78,7 @@ clean: .clean-post
 
 .clean-pre:
 # Add your pre 'clean' code here...
+	${MAKE} --directory=lib/RX14XX-BL -f Makefile CONF=RX1400 SUBPROJECTS=${SUBPROJECTS} clean
 
 .clean-post: .clean-impl
 # Add your post 'clean' code here...
@@ -108,4 +122,4 @@ include nbproject/Makefile-impl.mk
 include nbproject/Makefile-variables.mk
 
 # include EZBL makefile for creating a Bootloader and obtaining BOOTID_HASH values
-include ezbl_integration/ezbl_boot.mk
+include ezbl_integration/ezbl_app.mk

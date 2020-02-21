@@ -264,9 +264,6 @@ int main(void) {
   // initialize the device - MUST COME FIRST OR WILL OVERRIDE HAL STYLE CONFIG
   SYSTEM_Initialize();
 
-  EZBL_SetAppReservedHole(0x005000, 0x008000);
-  EZBL_ForwardAllIntToBoot();
-  
   bool ok = true;
 
   ok = !ok ? ok : wt_error_init(&error);
@@ -286,7 +283,7 @@ int main(void) {
   if (ok) {
     uint16_t status;
     ok = wthal_system_reset_status(hal->system, &status, false, &error);
-    wt_debug_print(debug, "=========================== BOOTLOADER ======================== (0x%04x)", status);
+    wt_debug_print(debug, "=========================== TEST APP ======================== (0x%04x)", status);
   }
 
 #ifdef DEBUG_STACK
@@ -294,7 +291,7 @@ int main(void) {
 #endif
 
   wt_rx14xx_bootloader_task_t bootloader;
-  ok = !ok ? ok : (wt_rx14xx_bootloader_task_init(&bootloader, hal->led1, 200, hal->clock, debug, &error) != NULL);
+  ok = !ok ? ok : (wt_rx14xx_bootloader_task_init(&bootloader, hal->led1, 1000, hal->clock, debug, &error) != NULL);
   
   bool pending_reset = false;
   

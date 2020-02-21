@@ -3,7 +3,7 @@
     <type>com.microchip.mplab.nbide.embedded.makeproject</type>
     <configuration>
         <data xmlns="http://www.netbeans.org/ns/make-project/1">
-            <name>RX14XX-BL</name>
+            <name>RX14XX-TestApp</name>
             <creation-uuid>cf31fc5d-c7c4-4818-a536-08ecde49c1f2</creation-uuid>
             <make-project-type>0</make-project-type>
             <c-extensions>c</c-extensions>
@@ -17,10 +17,12 @@
             <sourceRootList>
                 <sourceRootElem>src</sourceRootElem>
                 <sourceRootElem>ezbl_integration</sourceRootElem>
+                <sourceRootElem>../RX14XX-BL/dist</sourceRootElem>
+                <sourceRootElem>lib/RX14XX-BL/dist/RX1400/production</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>
-                    <name>RX1400</name>
+                    <name>default</name>
                     <type>2</type>
                 </confElem>
             </confList>

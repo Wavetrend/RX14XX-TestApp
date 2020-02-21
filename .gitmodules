@@ -1,3 +1,6 @@
 [submodule "lib/RX14XX-API"]
 	path = lib/RX14XX-API
 	url = git@github.com:Wavetrend/RX14XX-API.git
+[submodule "lib/RX14XX-BL"]
+	path = lib/RX14XX-BL
+	url = git@github.com:Wavetrend/RX14XX-BL.git
