@@ -67,7 +67,7 @@ build: .build-post
 # 1. Run the script to regenerate the project makefiles (not stored in repo)
 	${MAKEFILESGEN} lib/RX14XX-BL
 # 2. Build with the target config
-	${MAKE} --directory=lib/RX14XX-BL -f Makefile CONF=RX1400 SUBPROJECTS=${SUBPROJECTS} 
+	${MAKE} --directory=lib/RX14XX-BL -f Makefile CONF=RX1400 SUBPROJECTS=${SUBPROJECTS}
 
 .build-post: .build-impl
 # Add your post 'build' code here...
