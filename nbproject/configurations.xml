@@ -4,17 +4,8 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
-      <logicalFolder name="MCC Generated Files"
-                     displayName="MCC Generated Files"
-                     projectFiles="true">
-        <itemPath>mcc_generated_files/interrupt_manager.h</itemPath>
-        <itemPath>mcc_generated_files/pin_manager.h</itemPath>
-        <itemPath>mcc_generated_files/traps.h</itemPath>
-        <itemPath>mcc_generated_files/clock.h</itemPath>
-        <itemPath>mcc_generated_files/mcc.h</itemPath>
-        <itemPath>mcc_generated_files/system.h</itemPath>
-      </logicalFolder>
       <itemPath>ezbl_integration/ezbl.h</itemPath>
+      <itemPath>lib/RX14XX-BL/traps.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -24,25 +15,15 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <logicalFolder name="MCC Generated Files"
-                     displayName="MCC Generated Files"
-                     projectFiles="true">
-        <itemPath>mcc_generated_files/system.c</itemPath>
-        <itemPath>mcc_generated_files/traps.c</itemPath>
-        <itemPath>mcc_generated_files/clock.c</itemPath>
-        <itemPath>mcc_generated_files/interrupt_manager.c</itemPath>
-        <itemPath>mcc_generated_files/mcc.c</itemPath>
-        <itemPath>mcc_generated_files/pin_manager.c</itemPath>
-      </logicalFolder>
       <itemPath>main.c</itemPath>
       <itemPath>stack.s</itemPath>
       <itemPath>lib/RX14XX-BL/dist/RX1400/production/RX14XX-BL.merge.S</itemPath>
+      <itemPath>lib/RX14XX-BL/traps.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
                    projectFiles="false">
       <itemPath>Makefile</itemPath>
-      <itemPath>MyConfig.mc3</itemPath>
       <itemPath>ezbl_integration/ezbl_app.mk</itemPath>
     </logicalFolder>
   </logicalFolder>
@@ -50,7 +31,7 @@
     <Elem>src</Elem>
     <Elem>ezbl_integration</Elem>
     <Elem>../RX14XX-BL/dist</Elem>
-    <Elem>lib/RX14XX-BL/dist/RX1400/production</Elem>
+    <Elem>lib/RX14XX-BL</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -322,91 +303,7 @@
         <property key="programoptions.uselvpprogramming" value="false"/>
         <property key="voltagevalue" value="3.25"/>
       </PICkit3PlatformTool>
-      <item path="mcc_generated_files/clock.h" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-CO>
-        </C30-CO>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="mcc_generated_files/interrupt_manager.h"
-            ex="true"
-            overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-CO>
-        </C30-CO>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="mcc_generated_files/mcc.h" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-CO>
-        </C30-CO>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="mcc_generated_files/pin_manager.h" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-CO>
-        </C30-CO>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="mcc_generated_files/system.h" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-CO>
-        </C30-CO>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="mcc_generated_files/traps.h" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-CO>
-        </C30-CO>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
+      <item path="lib/RX14XX-BL/traps.h" ex="true" overriding="false">
       </item>
       <item path="stack.s" ex="false" overriding="false">
         <C30>

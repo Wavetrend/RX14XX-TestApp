@@ -18,7 +18,7 @@
                 <sourceRootElem>src</sourceRootElem>
                 <sourceRootElem>ezbl_integration</sourceRootElem>
                 <sourceRootElem>../RX14XX-BL/dist</sourceRootElem>
-                <sourceRootElem>lib/RX14XX-BL/dist/RX1400/production</sourceRootElem>
+                <sourceRootElem>lib/RX14XX-BL</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>
