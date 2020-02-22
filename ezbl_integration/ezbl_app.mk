@@ -15,7 +15,7 @@
 # integer.
 APPID_VER_MAJOR = 2
 APPID_VER_MINOR = 11
-APPID_VER_BUILD = 3788
+APPID_VER_BUILD = 3801
 
 APPID_VER_BUILD_INC = 1
 
@@ -57,7 +57,7 @@ endif
 
 # Pre-clean code (helps MPLAB X IDE continue if clean fails normally on Windows due to file system file locks). Must have "Use "clean" target from the makefile." checked in the MPLAB X IDE Embedded Project settings to invoke this.
 ezbl_clean:
-	(test -e "dist/${CONF}/${IMAGE_TYPE}" && rm -f "dist/${CONF}/${IMAGE_TYPE}/*") && (test "dist/${CONF}" 1>NUL && rm -rf "dist/${CONF}") | (test "build/${CONF}/${IMAGE_TYPE}" && rm -rfd "build/${CONF}/${IMAGE_TYPE}/*" 1>NUL && rm -rf "build/${CONF}" 1>NUL) | (test "debug/${CONF}" && rm -rf "debug/${CONF}/${IMAGE_TYPE}/*" 1>NUL && rm -rfd "debug/${CONF}" 1>NUL) | (test "disassembly" && rm -rfd "disassembly" 1>NUL) || true
+	(test -e "dist/${CONF}/${IMAGE_TYPE}" && rm -f "dist/${CONF}/${IMAGE_TYPE}/*") && (test "dist/${CONF}" && rm -rf "dist/${CONF}") | (test "build/${CONF}/${IMAGE_TYPE}" && rm -rfd "build/${CONF}/${IMAGE_TYPE}/*" && rm -rf "build/${CONF}") | (test "debug/${CONF}" && rm -rf "debug/${CONF}/${IMAGE_TYPE}/*" && rm -rfd "debug/${CONF}") | (test "disassembly" && rm -rfd "disassembly") || true
 
 
 
