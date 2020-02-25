@@ -1,4 +1,4 @@
-# RX14XX-BL
-RX14XX BootLoader Project
+# RX14XX-TestApp
+RX14XX TestApp for BootLoader Project
 
-This repo contains the bootloader project used by RX1400 and RX1410 application projects
+This repo contains the an application project for testing the RX14XX-BL Bootloader project
