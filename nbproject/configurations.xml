@@ -41,13 +41,13 @@
         <targetDevice>PIC24FJ256GB206</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>PICkit3PlatformTool</platformTool>
+        <platformTool>noID</platformTool>
         <languageToolchain>XC16</languageToolchain>
-        <languageToolchainVersion>1.41</languageToolchainVersion>
+        <languageToolchainVersion>1.50</languageToolchainVersion>
         <platform>4</platform>
       </toolsSet>
       <packs>
-        <pack name="PIC24F-DA-GB_DFP" vendor="Microchip" version="1.1.14"/>
+        <pack name="PIC24F-DA-GB_DFP" vendor="Microchip" version="1.2.36"/>
       </packs>
       <compileType>
         <linkerTool>
@@ -213,6 +213,7 @@
         <property key="legacy-libc" value="true"/>
         <property key="mpreserve-all" value="false"/>
         <property key="oXC16glb-macros" value=""/>
+        <property key="omit-pack-options" value="1"/>
         <property key="output-file-format" value="elf"/>
         <property key="preserve-all" value="false"/>
         <property key="preserve-file" value=""/>
@@ -303,6 +304,18 @@
         <property key="voltagevalue" value="3.25"/>
       </PICkit3PlatformTool>
       <item path="lib/RX14XX-BL/traps.h" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-CO>
+        </C30-CO>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="stack.s" ex="false" overriding="false">
         <C30>
