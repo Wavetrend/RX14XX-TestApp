@@ -41,7 +41,7 @@
         <targetDevice>PIC24FJ256GB206</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>noID</platformTool>
+        <platformTool>PICkit3PlatformTool</platformTool>
         <languageToolchain>XC16</languageToolchain>
         <languageToolchainVersion>1.50</languageToolchainVersion>
         <platform>4</platform>
@@ -92,9 +92,9 @@
         <makeCustomizationNormalizeHexFile>false</makeCustomizationNormalizeHexFile>
       </makeCustomizationType>
       <C30>
-        <property key="code-model" value="default"/>
+        <property key="code-model" value="large-code"/>
         <property key="const-model" value="default"/>
-        <property key="data-model" value="default"/>
+        <property key="data-model" value="small-data"/>
         <property key="disable-instruction-scheduling" value="false"/>
         <property key="enable-all-warnings" value="true"/>
         <property key="enable-ansi-std" value="false"/>

@@ -343,6 +343,11 @@ int main(void) {
     wt_debug_print(debug, "=========================== TEST APP ======================== (0x%04x)", status);
   }
 
+  wt_debug_print(debug, "HASH0 = 0x%08lx", EZBL_bootIDHash.bootIDHash32[0]);
+  wt_debug_print(debug, "HASH1 = 0x%08lx", EZBL_bootIDHash.bootIDHash32[1]);
+  wt_debug_print(debug, "HASH2 = 0x%08lx", EZBL_bootIDHash.bootIDHash32[2]);
+  wt_debug_print(debug, "HASH3 = 0x%08lx", EZBL_bootIDHash.bootIDHash32[3]);
+  
 #ifdef DEBUG_STACK
   wt_debug_print(debug, "Stack: %u at startup", UnusedStackBytes);
 #endif
